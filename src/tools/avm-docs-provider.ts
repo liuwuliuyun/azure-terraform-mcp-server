@@ -11,11 +11,10 @@ import { extract } from 'tar';
 import type {
   AvmModule,
   AvmVersion,
-  GetAvmModulesParamsType,
+  ListAvmModulesParamsType,
   GetAvmLatestVersionParamsType,
   GetAvmVersionsParamsType,
-  GetAvmVariablesParamsType,
-  GetAvmOutputsParamsType,
+  GetAvmDocumentationParamsType,
 } from '../core/types.js';
 import { getGitHubToken } from '../core/config.js';
 
@@ -356,6 +355,20 @@ async function getVersionPath(moduleName: string, version: string): Promise<stri
     await downloadModuleVersion(versionInfo.tarballUrl, versionPath);
   }
 
+  // Check if there's a wrapper directory (GitHub tarballs extract with a wrapper dir)
+  // If flattening didn't work, we need to look inside the wrapper directory
+  const entries = readdirSync(versionPath);
+  if (entries.length === 1) {
+    const potentialWrapper = join(versionPath, entries[0] ?? '');
+    if (existsSync(potentialWrapper) && statSync(potentialWrapper).isDirectory()) {
+      // Check if this directory contains terraform files (indicating it's the wrapper)
+      const innerEntries = readdirSync(potentialWrapper);
+      if (innerEntries.some((e) => e.endsWith('.tf'))) {
+        return potentialWrapper;
+      }
+    }
+  }
+
   return versionPath;
 }
 
@@ -364,10 +377,10 @@ async function getVersionPath(moduleName: string, version: string): Promise<stri
 // ==========================================
 
 /**
- * Get all available Azure Verified Modules.
+ * List all available Azure Verified Modules.
  */
-export async function getAvmModules(
-  _params: GetAvmModulesParamsType
+export async function listAvmModules(
+  _params: ListAvmModulesParamsType
 ): Promise<AvmModule[]> {
   const modules = await getModuleCollection();
 
@@ -434,51 +447,22 @@ export async function getAvmVersions(
 }
 
 /**
- * Get the input variables schema for a specific AVM module version.
+ * Get the documentation (README.md) for a specific AVM module version.
  */
-export async function getAvmVariables(
-  params: GetAvmVariablesParamsType
+export async function getAvmDocumentation(
+  params: GetAvmDocumentationParamsType
 ): Promise<string> {
   const { moduleName, moduleVersion } = params;
 
   try {
     const basePath = await getVersionPath(moduleName, moduleVersion);
-    const files = readdirSync(basePath);
-    const variableFiles = files.filter((f) => f.endsWith('.tf') && f.startsWith('variable'));
+    const readmePath = join(basePath, 'README.md');
 
-    let result = '';
-    for (const variableFile of variableFiles) {
-      const filePath = join(basePath, variableFile);
-      result += readFileSync(filePath, 'utf-8') + '\n';
+    if (!existsSync(readmePath)) {
+      return `No README.md found for module ${moduleName} version ${moduleVersion}`;
     }
 
-    return result || `No variable files found for module ${moduleName} version ${moduleVersion}`;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return `Error: ${message}`;
-  }
-}
-
-/**
- * Get the output definitions for a specific AVM module version.
- */
-export async function getAvmOutputs(
-  params: GetAvmOutputsParamsType
-): Promise<string> {
-  const { moduleName, moduleVersion } = params;
-
-  try {
-    const basePath = await getVersionPath(moduleName, moduleVersion);
-    const files = readdirSync(basePath);
-    const outputFiles = files.filter((f) => f.endsWith('.tf') && f.startsWith('output'));
-
-    let result = '';
-    for (const outputFile of outputFiles) {
-      const filePath = join(basePath, outputFile);
-      result += readFileSync(filePath, 'utf-8') + '\n';
-    }
-
-    return result || `No output files found for module ${moduleName} version ${moduleVersion}`;
+    return readFileSync(readmePath, 'utf-8');
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return `Error: ${message}`;

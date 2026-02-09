@@ -9,14 +9,22 @@ export {
 
 export {
   getAzAPIProviderDocumentation,
+  clearSchemaCache,
 } from './azapi-docs-provider.js';
 
 export {
-  getAvmModules,
+  initializeAzAPISchemas,
+  getAzAPISchema,
+  getAzAPIParent,
+  clearAzAPISchemaCache,
+  AzAPISchemaGenerator,
+} from './azapi-schema-generator.js';
+
+export {
+  listAvmModules,
   getAvmLatestVersion,
   getAvmVersions,
-  getAvmVariables,
-  getAvmOutputs,
+  getAvmDocumentation,
 } from './avm-docs-provider.js';
 
 export {

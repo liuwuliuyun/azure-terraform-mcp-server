@@ -82,14 +82,37 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 #### VS Code with MCP Extension
 
-Add to your workspace or user settings:
+Add to your VS Code MCP configuration (`.vscode/mcp.json` or user settings):
+
+**Using global installation:**
 
 ```json
 {
-  "mcp.servers": {
+  "servers": {
     "azure-terraform": {
       "command": "azure-terraform-mcp-server",
       "env": {
+        "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Using local development (from source):**
+
+```json
+{
+  "servers": {
+    "azure-terraform": {
+      "command": "npm",
+      "args": ["start"],
+      "cwd": "C:\\path\\to\\azure-terraform-mcp-server",
+      "env": {
+        "ARM_CLIENT_ID": "${env:ARM_CLIENT_ID}",
+        "ARM_CLIENT_SECRET": "${env:ARM_CLIENT_SECRET}",
+        "ARM_SUBSCRIPTION_ID": "${env:ARM_SUBSCRIPTION_ID}",
+        "ARM_TENANT_ID": "${env:ARM_TENANT_ID}",
         "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"
       }
     }
@@ -127,7 +150,7 @@ Retrieve documentation for an AzAPI resource type.
 - `resourceTypeName` (required): Azure resource type in REST API format (e.g., `Microsoft.Storage/storageAccounts`)
 - `apiVersion` (optional): Specific API version
 
-#### `get_avm_modules`
+#### `list_avm_modules`
 
 List all available Azure Verified Modules.
 
@@ -147,21 +170,13 @@ List all versions of a specific AVM module.
 **Parameters:**
 - `moduleName` (required): The module name
 
-#### `get_avm_variables`
+#### `get_avm_documentation`
 
-Get the input variables for a specific module version.
+Get the documentation (README.md) for a specific module version.
 
 **Parameters:**
 - `moduleName` (required): The module name
 - `moduleVersion` (required): The version (e.g., `0.1.0`)
-
-#### `get_avm_outputs`
-
-Get the outputs for a specific module version.
-
-**Parameters:**
-- `moduleName` (required): The module name
-- `moduleVersion` (required): The version
 
 ### Resource Export Tools
 
@@ -247,7 +262,7 @@ You can also use this package as a library in your own applications:
 import {
   createServer,
   getAzureRMProviderDocumentation,
-  getAvmModules,
+  listAvmModules,
   exportAzureResource,
 } from '@azure/terraform-mcp-server';
 
@@ -258,7 +273,7 @@ const docs = await getAzureRMProviderDocumentation({
 });
 
 // List AVM modules
-const modules = await getAvmModules({});
+const modules = await listAvmModules({});
 
 // Export a resource
 const result = await exportAzureResource({

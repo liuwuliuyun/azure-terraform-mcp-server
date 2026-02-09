@@ -18,11 +18,10 @@ export {
 } from './tools/azapi-docs-provider.js';
 
 export {
-  getAvmModules,
+  listAvmModules,
   getAvmLatestVersion,
   getAvmVersions,
-  getAvmVariables,
-  getAvmOutputs,
+  getAvmDocumentation,
 } from './tools/avm-docs-provider.js';
 
 export {
@@ -64,11 +63,10 @@ export type {
 export {
   GetAzureRMDocumentationParams,
   GetAzAPIDocumentationParams,
-  GetAvmModulesParams,
+  ListAvmModulesParams,
   GetAvmLatestVersionParams,
   GetAvmVersionsParams,
-  GetAvmVariablesParams,
-  GetAvmOutputsParams,
+  GetAvmDocumentationParams,
   CheckAztfexportInstallationParams,
   ExportAzureResourceParams,
   ExportAzureResourceGroupParams,

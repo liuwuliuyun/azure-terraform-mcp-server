@@ -9,12 +9,24 @@ import { getAzAPIProviderDocumentation, clearSchemaCache } from '../src/tools/az
 // Mock Setup
 // ==========================================
 
+// Mock the azapi-schema-generator module to control schema availability
+vi.mock('../src/tools/azapi-schema-generator.js', () => ({
+  initializeAzAPISchemas: vi.fn(),
+  getAzAPISchema: vi.fn(),
+  clearAzAPISchemaCache: vi.fn(),
+}));
+
+import { initializeAzAPISchemas, getAzAPISchema, clearAzAPISchemaCache } from '../src/tools/azapi-schema-generator.js';
+
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
   clearSchemaCache();
   mockFetch.mockReset();
+  vi.mocked(initializeAzAPISchemas).mockReset();
+  vi.mocked(getAzAPISchema).mockReset();
+  vi.mocked(clearAzAPISchemaCache).mockReset();
 });
 
 afterEach(() => {
@@ -26,49 +38,54 @@ afterEach(() => {
 // ==========================================
 
 describe('getAzAPIProviderDocumentation', () => {
-  describe('online documentation fetch', () => {
-    it('should return documentation URL when Azure docs respond', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-      });
+  describe('schema loading and caching', () => {
+    it('should return not_found when schema is not available', async () => {
+      // When no schemas are loaded, return empty object
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({});
+      vi.mocked(getAzAPISchema).mockReturnValue('');
 
       const result = await getAzAPIProviderDocumentation({
         resourceTypeName: 'Microsoft.Storage/storageAccounts',
       });
 
       expect(result.resourceType).toBe('Microsoft.Storage/storageAccounts');
-      expect(result.source).toBe('Azure REST API docs');
-      expect(result.documentationUrl).toContain('docs.microsoft.com');
-    });
-
-    it('should fallback when Azure docs return 404', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 404,
-      });
-
-      const result = await getAzAPIProviderDocumentation({
-        resourceTypeName: 'Microsoft.Unknown/resource',
-      });
-
-      expect(result.source).toBe('fallback');
+      expect(result.source).toBe('not_found');
       expect(result.documentationUrl).toContain('registry.terraform.io');
     });
 
-    it('should fallback on network error', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
+    it('should return not_found when resource type does not exist in schema', async () => {
+      // Schemas exist but resource type is not found
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({
+        'microsoft.compute/virtualmachines': '# Schema for VMs'
+      });
+      vi.mocked(getAzAPISchema).mockReturnValue('');
+
+      const result = await getAzAPIProviderDocumentation({
+        resourceTypeName: 'Microsoft.Unknown/nonExistentResource',
+      });
+
+      expect(result.source).toBe('not_found');
+      expect(result.error).toContain('No schema found');
+    });
+
+    it('should return schema when resource type exists', async () => {
+      const mockSchema = '# Resource Type: Microsoft.Storage/storageAccounts@2023-01-01\nAPI Version: 2023-01-01';
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({
+        'microsoft.storage/storageaccounts': mockSchema
+      });
+      vi.mocked(getAzAPISchema).mockReturnValue(mockSchema);
 
       const result = await getAzAPIProviderDocumentation({
         resourceTypeName: 'Microsoft.Storage/storageAccounts',
       });
 
-      expect(result.source).toBe('fallback');
+      expect(result.source).toBe('azapi_provider_schemas');
+      expect(result.schema).toEqual({ documentation: mockSchema });
     });
 
     it('should include apiVersion when provided', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-      });
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({});
+      vi.mocked(getAzAPISchema).mockReturnValue('');
 
       const result = await getAzAPIProviderDocumentation({
         resourceTypeName: 'Microsoft.Storage/storageAccounts',
@@ -79,9 +96,8 @@ describe('getAzAPIProviderDocumentation', () => {
     });
 
     it('should use "latest" as default apiVersion', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-      });
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({});
+      vi.mocked(getAzAPISchema).mockReturnValue('');
 
       const result = await getAzAPIProviderDocumentation({
         resourceTypeName: 'Microsoft.Storage/storageAccounts',
@@ -92,25 +108,24 @@ describe('getAzAPIProviderDocumentation', () => {
   });
 
   describe('error handling', () => {
-    it('should return fallback result when fetch throws', async () => {
-      // When fetch throws, the function catches it and returns fallback
-      mockFetch.mockImplementation(() => {
-        throw new Error('Network error');
-      });
+    it('should handle schema loading errors gracefully', async () => {
+      // When schema loading fails, return error
+      vi.mocked(initializeAzAPISchemas).mockRejectedValue(new Error('Failed to load schemas'));
 
       const result = await getAzAPIProviderDocumentation({
         resourceTypeName: 'Microsoft.Storage/storageAccounts',
       });
 
-      // The implementation catches fetch errors and returns fallback, not error
-      expect(result.source).toBe('fallback');
-      expect(result.documentationUrl).toContain('registry.terraform.io');
+      // The implementation catches errors and returns error source
+      expect(result.source).toBe('error');
+      expect(result.error).toContain('Failed to load schemas');
     });
   });
 
   describe('resource type handling', () => {
     it('should handle various resource type formats', async () => {
-      mockFetch.mockResolvedValue({ ok: true });
+      vi.mocked(initializeAzAPISchemas).mockResolvedValue({});
+      vi.mocked(getAzAPISchema).mockReturnValue('');
 
       const resourceTypes = [
         'Microsoft.Compute/virtualMachines',

@@ -2,70 +2,41 @@
  * AzAPI provider documentation tools for Azure Terraform MCP Server.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type {
   AzApiDocumentationResult,
   GetAzAPIDocumentationParamsType,
 } from '../core/types.js';
+import {
+  initializeAzAPISchemas,
+  getAzAPISchema,
+  clearAzAPISchemaCache,
+} from './azapi-schema-generator.js';
 
 // ==========================================
-// Schema Loading
+// Schema Loading (Lazy)
 // ==========================================
 
-let cachedSchema: Record<string, unknown> | null = null;
+let cachedSchemas: Record<string, string> | null = null;
 
 /**
- * Get the path to the AzAPI schema file.
- * This looks for the schema file in the data directory.
+ * Get schemas, loading them lazily if needed.
+ * Uses the schema generator with 5-day cache expiry.
  */
-function getSchemaPath(): string | null {
-  // Try to find the schema file in common locations
-  const possiblePaths = [
-    // Relative to cwd
-    join(process.cwd(), 'data', 'azapi_schemas_v2.6.1.json'),
-    // Relative to the original Python project structure
-    join(process.cwd(), 'src', 'data', 'azapi_schemas_v2.6.1.json'),
-    // Look for bundled data folder
-    join(process.cwd(), 'node_modules', '@azure', 'terraform-mcp-server', 'data', 'azapi_schemas_v2.6.1.json'),
-  ];
-
-  for (const schemaPath of possiblePaths) {
-    if (existsSync(schemaPath)) {
-      return schemaPath;
-    }
+async function getSchemas(): Promise<Record<string, string>> {
+  if (cachedSchemas) {
+    return cachedSchemas;
   }
 
-  return null;
-}
-
-/**
- * Load the AzAPI schema from disk.
- */
-function loadSchema(): Record<string, unknown> {
-  if (cachedSchema) {
-    return cachedSchema;
-  }
-
-  const schemaPath = getSchemaPath();
-  if (!schemaPath) {
-    return {};
-  }
-
-  try {
-    const content = readFileSync(schemaPath, 'utf-8');
-    cachedSchema = JSON.parse(content) as Record<string, unknown>;
-    return cachedSchema;
-  } catch {
-    return {};
-  }
+  cachedSchemas = await initializeAzAPISchemas();
+  return cachedSchemas;
 }
 
 /**
  * Clear the cached schema (useful for testing).
  */
 export function clearSchemaCache(): void {
-  cachedSchema = null;
+  cachedSchemas = null;
+  clearAzAPISchemaCache();
 }
 
 // ==========================================
@@ -81,20 +52,34 @@ export async function getAzAPIProviderDocumentation(
   const { resourceTypeName, apiVersion } = params;
 
   try {
-    // Search in loaded schema
-    const schemaInfo = searchAzAPISchema(resourceTypeName, apiVersion);
+    // Load schemas lazily (will be cached after first load)
+    const schemas = await getSchemas();
 
-    if (schemaInfo) {
+    // Search in loaded schema
+    const schemaDoc = searchAzAPISchema(resourceTypeName, schemas);
+
+    if (schemaDoc) {
       return {
         resourceType: resourceTypeName,
         apiVersion: apiVersion ?? 'latest',
-        schema: schemaInfo,
-        source: 'azapi_schemas.json',
+        schema: {
+          documentation: schemaDoc,
+        },
+        source: 'azapi_provider_schemas',
+        summary: `AzAPI resource schema for ${resourceTypeName}`,
       };
     }
 
-    // If not found in local schema, try to fetch from Azure docs
-    return await fetchAzAPIDocsOnline(resourceTypeName, apiVersion);
+    // If not found in local schema, return a helpful error
+    return {
+      resourceType: resourceTypeName,
+      apiVersion: apiVersion ?? 'latest',
+      summary: `Resource type ${resourceTypeName} not found in AzAPI schemas`,
+      documentationUrl:
+        'https://registry.terraform.io/providers/Azure/azapi/latest/docs',
+      source: 'not_found',
+      error: `No schema found for resource type: ${resourceTypeName}. Available resource types can be found in the AzAPI provider documentation.`,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
@@ -115,71 +100,41 @@ export async function getAzAPIProviderDocumentation(
  */
 function searchAzAPISchema(
   resourceType: string,
-  _apiVersion?: string
-): Record<string, unknown> | null {
-  const schema = loadSchema();
-
-  if (Object.keys(schema).length === 0) {
+  schemas: Record<string, string>
+): string | null {
+  if (Object.keys(schemas).length === 0) {
     return null;
+  }
+
+  // Try exact match first using the helper function
+  const exactMatch = getAzAPISchema(resourceType, schemas);
+  if (exactMatch) {
+    return exactMatch;
   }
 
   // Normalize the resource type for searching
   const searchType = resourceType.toLowerCase();
 
-  // Search through the schema
-  for (const [key, value] of Object.entries(schema)) {
+  // Search through the schema for partial matches
+  for (const [key, value] of Object.entries(schemas)) {
     if (key.toLowerCase().includes(searchType)) {
-      return {
-        definition: value,
-        schemaKey: key,
-      };
+      return value;
+    }
+  }
+
+  // Try matching just the resource name part (e.g., "clusters" from "Microsoft.Kusto/clusters")
+  const resourceParts = searchType.split('/');
+  if (resourceParts.length >= 2) {
+    const provider = resourceParts[0]; // e.g., "microsoft.kusto"
+    const resourceName = resourceParts.slice(1).join('/'); // e.g., "clusters"
+
+    for (const [key, value] of Object.entries(schemas)) {
+      const keyLower = key.toLowerCase();
+      if (keyLower.startsWith(provider ?? '') && keyLower.includes(resourceName)) {
+        return value;
+      }
     }
   }
 
   return null;
-}
-
-// ==========================================
-// Online Documentation Fetch
-// ==========================================
-
-/**
- * Fetch AzAPI documentation from online sources.
- */
-async function fetchAzAPIDocsOnline(
-  resourceType: string,
-  apiVersion?: string
-): Promise<AzApiDocumentationResult> {
-  try {
-    // Try Azure REST API documentation
-    const azureDocsUrl = `https://docs.microsoft.com/en-us/rest/api/${resourceType.toLowerCase()}`;
-
-    const response = await fetch(azureDocsUrl, {
-      method: 'HEAD', // Just check if the URL exists
-      headers: {
-        'User-Agent': 'Azure-Terraform-MCP-Server',
-      },
-    });
-
-    if (response.ok) {
-      return {
-        resourceType: resourceType,
-        apiVersion: apiVersion ?? 'latest',
-        documentationUrl: azureDocsUrl,
-        source: 'Azure REST API docs',
-        summary: `Azure REST API documentation for ${resourceType}`,
-      };
-    }
-  } catch {
-    // Continue to fallback
-  }
-
-  // Fallback response
-  return {
-    resourceType: resourceType,
-    apiVersion: apiVersion ?? 'latest',
-    summary: `AzAPI resource type: ${resourceType}`,
-    documentationUrl: 'https://registry.terraform.io/providers/Azure/azapi/latest/docs',
-    source: 'fallback',
-  };
 }

@@ -10,11 +10,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  getAvmModules,
+  listAvmModules,
   getAvmLatestVersion,
   getAvmVersions,
-  getAvmVariables,
-  getAvmOutputs,
+  getAvmDocumentation,
   clearAvmCache,
 } from '../src/tools/avm-docs-provider.js';
 
@@ -55,17 +54,17 @@ describe('clearAvmCache', () => {
 // getAvmModules - Return Type Validation
 // ==========================================
 
-describe('getAvmModules', () => {
+describe('listAvmModules', () => {
   it('should return an array', async () => {
     // This test verifies the function returns the expected type
     // It may use cached data or fetch from remote
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     expect(Array.isArray(modules)).toBe(true);
   });
 
   it('should return modules with expected structure', async () => {
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     if (modules.length > 0) {
       const module = modules[0];
@@ -77,7 +76,7 @@ describe('getAvmModules', () => {
   });
 
   it('should return modules with valid moduleName', async () => {
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     for (const module of modules) {
       expect(typeof module.moduleName).toBe('string');
@@ -86,7 +85,7 @@ describe('getAvmModules', () => {
   });
 
   it('should return modules with Terraform source format', async () => {
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     for (const module of modules) {
       // Source should be in format: org/module/provider
@@ -144,12 +143,12 @@ describe('getAvmVersions', () => {
 });
 
 // ==========================================
-// getAvmVariables
+// getAvmDocumentation
 // ==========================================
 
-describe('getAvmVariables', () => {
+describe('getAvmDocumentation', () => {
   it('should return error for unknown module', async () => {
-    const result = await getAvmVariables({
+    const result = await getAvmDocumentation({
       moduleName: 'definitely-not-a-real-module-xyz789',
       moduleVersion: '0.1.0',
     });
@@ -159,32 +158,7 @@ describe('getAvmVariables', () => {
   });
 
   it('should return a string', async () => {
-    const result = await getAvmVariables({
-      moduleName: 'some-module',
-      moduleVersion: '0.1.0',
-    });
-    
-    expect(typeof result).toBe('string');
-  });
-});
-
-// ==========================================
-// getAvmOutputs
-// ==========================================
-
-describe('getAvmOutputs', () => {
-  it('should return error for unknown module', async () => {
-    const result = await getAvmOutputs({
-      moduleName: 'definitely-not-a-real-module-xyz999',
-      moduleVersion: '0.1.0',
-    });
-    
-    expect(result).toContain('Error');
-    expect(result).toContain('not found');
-  });
-
-  it('should return a string', async () => {
-    const result = await getAvmOutputs({
+    const result = await getAvmDocumentation({
       moduleName: 'some-module',
       moduleVersion: '0.1.0',
     });
@@ -199,15 +173,15 @@ describe('getAvmOutputs', () => {
 
 describe('module data consistency', () => {
   it('should return same modules on repeated calls', async () => {
-    const modules1 = await getAvmModules({});
-    const modules2 = await getAvmModules({});
+    const modules1 = await listAvmModules({});
+    const modules2 = await listAvmModules({});
     
     expect(modules1.length).toBe(modules2.length);
     expect(modules1.map(m => m.moduleName)).toEqual(modules2.map(m => m.moduleName));
   });
 
   it('should only include Available modules (not Proposed)', async () => {
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     // We can't directly test this without knowing the CSV content,
     // but we can verify that all returned modules have expected fields
@@ -218,7 +192,7 @@ describe('module data consistency', () => {
   });
 
   it('should have modules with Azure repo URLs', async () => {
-    const modules = await getAvmModules({});
+    const modules = await listAvmModules({});
     
     for (const module of modules) {
       // AVM modules are hosted on Azure GitHub org

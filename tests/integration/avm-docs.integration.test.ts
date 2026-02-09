@@ -10,11 +10,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync, rmSync } from 'node:fs';
 import {
-  getAvmModules,
+  listAvmModules,
   getAvmLatestVersion,
   getAvmVersions,
-  getAvmVariables,
-  getAvmOutputs,
+  getAvmDocumentation,
 } from '../../src/tools/avm-docs-provider.js';
 import { TEST_RESOURCES, hasGitHubToken } from './helpers.js';
 
@@ -40,9 +39,9 @@ describe('AVM Documentation Provider - Integration', () => {
     }
   });
 
-  describe('getAvmModules', () => {
+  describe('listAvmModules', () => {
     it('should fetch list of available AVM modules from real registry', async () => {
-      const modules = await getAvmModules({});
+      const modules = await listAvmModules({});
 
       expect(modules).toBeDefined();
       expect(Array.isArray(modules)).toBe(true);
@@ -62,7 +61,7 @@ describe('AVM Documentation Provider - Integration', () => {
     }, 60000);
 
     it('should include well-known modules when available', async () => {
-      const modules = await getAvmModules({});
+      const modules = await listAvmModules({});
       const moduleNames = modules.map(m => m.moduleName);
       
       // Check if known modules are present
@@ -75,7 +74,7 @@ describe('AVM Documentation Provider - Integration', () => {
     }, 60000);
 
     it('should have description for modules', async () => {
-      const modules = await getAvmModules({});
+      const modules = await listAvmModules({});
       
       // At least some modules should have descriptions
       const modulesWithDescription = modules.filter(m => m.description && m.description.length > 0);
@@ -181,8 +180,8 @@ describe('AVM Documentation Provider - Integration', () => {
     }, 60000);
   });
 
-  describe('getAvmVariables', () => {
-    it('should attempt to get variables for storage account module', async () => {
+  describe('getAvmDocumentation', () => {
+    it('should attempt to get documentation for storage account module', async () => {
       // First get a version
       const versionResult = await getAvmLatestVersion({
         moduleName: TEST_RESOURCES.avm.storageAccount,
@@ -190,7 +189,7 @@ describe('AVM Documentation Provider - Integration', () => {
       
       const version = /^\d+\.\d+\.\d+/.test(versionResult) ? versionResult : '0.1.0';
 
-      const result = await getAvmVariables({
+      const result = await getAvmDocumentation({
         moduleName: TEST_RESOURCES.avm.storageAccount,
         moduleVersion: version,
       });
@@ -198,30 +197,8 @@ describe('AVM Documentation Provider - Integration', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       
-      // Result can be HCL content, "No variable files found", or an error
-      console.log(`Variables result length: ${result.length} chars`);
-    }, 120000);
-  });
-
-  describe('getAvmOutputs', () => {
-    it('should attempt to get outputs for storage account module', async () => {
-      // First get a version
-      const versionResult = await getAvmLatestVersion({
-        moduleName: TEST_RESOURCES.avm.storageAccount,
-      });
-      
-      const version = /^\d+\.\d+\.\d+/.test(versionResult) ? versionResult : '0.1.0';
-
-      const result = await getAvmOutputs({
-        moduleName: TEST_RESOURCES.avm.storageAccount,
-        moduleVersion: version,
-      });
-
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
-      
-      // Result can be HCL content, "No output files found", or an error
-      console.log(`Outputs result length: ${result.length} chars`);
+      // Result can be README content, "No README.md found", or an error
+      console.log(`Documentation result length: ${result.length} chars`);
     }, 120000);
   });
 });

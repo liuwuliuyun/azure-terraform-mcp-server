@@ -191,7 +191,7 @@ export const GetAzAPIDocumentationParams = z.object({
   apiVersion: z.string().optional().describe('Optional specific API version'),
 });
 
-export const GetAvmModulesParams = z.object({});
+export const ListAvmModulesParams = z.object({});
 
 export const GetAvmLatestVersionParams = z.object({
   moduleName: z.string().describe('The name of the Azure verified module (e.g., avm-res-apimanagement-service)'),
@@ -201,12 +201,7 @@ export const GetAvmVersionsParams = z.object({
   moduleName: z.string().describe('The name of the Azure verified module'),
 });
 
-export const GetAvmVariablesParams = z.object({
-  moduleName: z.string().describe('The name of the Azure verified module'),
-  moduleVersion: z.string().describe('The version of the module'),
-});
-
-export const GetAvmOutputsParams = z.object({
+export const GetAvmDocumentationParams = z.object({
   moduleName: z.string().describe('The name of the Azure verified module'),
   moduleVersion: z.string().describe('The version of the module'),
 });
@@ -267,11 +262,10 @@ export const RunConftestWorkspacePlanValidationParams = z.object({
 
 export type GetAzureRMDocumentationParamsType = z.infer<typeof GetAzureRMDocumentationParams>;
 export type GetAzAPIDocumentationParamsType = z.infer<typeof GetAzAPIDocumentationParams>;
-export type GetAvmModulesParamsType = z.infer<typeof GetAvmModulesParams>;
+export type ListAvmModulesParamsType = z.infer<typeof ListAvmModulesParams>;
 export type GetAvmLatestVersionParamsType = z.infer<typeof GetAvmLatestVersionParams>;
 export type GetAvmVersionsParamsType = z.infer<typeof GetAvmVersionsParams>;
-export type GetAvmVariablesParamsType = z.infer<typeof GetAvmVariablesParams>;
-export type GetAvmOutputsParamsType = z.infer<typeof GetAvmOutputsParams>;
+export type GetAvmDocumentationParamsType = z.infer<typeof GetAvmDocumentationParams>;
 export type CheckAztfexportInstallationParamsType = z.infer<typeof CheckAztfexportInstallationParams>;
 export type ExportAzureResourceParamsType = z.infer<typeof ExportAzureResourceParams>;
 export type ExportAzureResourceGroupParamsType = z.infer<typeof ExportAzureResourceGroupParams>;

@@ -8,11 +8,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   GetAzureRMDocumentationParams,
   GetAzAPIDocumentationParams,
-  GetAvmModulesParams,
+  ListAvmModulesParams,
   GetAvmLatestVersionParams,
   GetAvmVersionsParams,
-  GetAvmVariablesParams,
-  GetAvmOutputsParams,
+  GetAvmDocumentationParams,
   CheckAztfexportInstallationParams,
   ExportAzureResourceParams,
   ExportAzureResourceGroupParams,
@@ -32,11 +31,10 @@ import {
 } from './tools/azapi-docs-provider.js';
 
 import {
-  getAvmModules,
+  listAvmModules,
   getAvmLatestVersion,
   getAvmVersions,
-  getAvmVariables,
-  getAvmOutputs,
+  getAvmDocumentation,
 } from './tools/avm-docs-provider.js';
 
 import {
@@ -132,10 +130,10 @@ export function createServer(): McpServer {
   // ==========================================
 
   server.tool(
-    'get_avm_modules',
+    'list_avm_modules',
     'Retrieves all available Azure verified modules. Returns a list of modules with module_name, description, and source fields.',
-    GetAvmModulesParams.shape,
-    createHandler(getAvmModules)
+    ListAvmModulesParams.shape,
+    createHandler(listAvmModules)
   );
 
   server.tool(
@@ -153,17 +151,10 @@ export function createServer(): McpServer {
   );
 
   server.tool(
-    'get_avm_variables',
-    'Retrieves the input variables schema for a specific Azure verified module version.',
-    GetAvmVariablesParams.shape,
-    createHandler(getAvmVariables, textResult)
-  );
-
-  server.tool(
-    'get_avm_outputs',
-    'Retrieves the output definitions for a specific Azure verified module version.',
-    GetAvmOutputsParams.shape,
-    createHandler(getAvmOutputs, textResult)
+    'get_avm_documentation',
+    'Retrieves the documentation (README.md) for a specific Azure verified module version.',
+    GetAvmDocumentationParams.shape,
+    createHandler(getAvmDocumentation, textResult)
   );
 
   server.tool(

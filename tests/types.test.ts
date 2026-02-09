@@ -6,11 +6,10 @@ import { describe, it, expect } from 'vitest';
 import {
   GetAzureRMDocumentationParams,
   GetAzAPIDocumentationParams,
-  GetAvmModulesParams,
+  ListAvmModulesParams,
   GetAvmLatestVersionParams,
   GetAvmVersionsParams,
-  GetAvmVariablesParams,
-  GetAvmOutputsParams,
+  GetAvmDocumentationParams,
   CheckAztfexportInstallationParams,
   ExportAzureResourceParams,
   ExportAzureResourceGroupParams,
@@ -110,9 +109,9 @@ describe('GetAzAPIDocumentationParams', () => {
 // AVM Params
 // ==========================================
 
-describe('GetAvmModulesParams', () => {
+describe('ListAvmModulesParams', () => {
   it('should validate empty object', () => {
-    const result = GetAvmModulesParams.safeParse({});
+    const result = ListAvmModulesParams.safeParse({});
     expect(result.success).toBe(true);
   });
 });
@@ -145,9 +144,9 @@ describe('GetAvmVersionsParams', () => {
   });
 });
 
-describe('GetAvmVariablesParams', () => {
+describe('GetAvmDocumentationParams', () => {
   it('should validate valid input', () => {
-    const result = GetAvmVariablesParams.safeParse({
+    const result = GetAvmDocumentationParams.safeParse({
       moduleName: 'avm-res-storage-storageaccount',
       moduleVersion: '0.1.0',
     });
@@ -160,22 +159,11 @@ describe('GetAvmVariablesParams', () => {
   });
 
   it('should reject missing moduleVersion', () => {
-    const result = GetAvmVariablesParams.safeParse({
+    const result = GetAvmDocumentationParams.safeParse({
       moduleName: 'avm-res-storage-storageaccount',
     });
 
     expect(result.success).toBe(false);
-  });
-});
-
-describe('GetAvmOutputsParams', () => {
-  it('should validate valid input', () => {
-    const result = GetAvmOutputsParams.safeParse({
-      moduleName: 'avm-res-network-virtualnetwork',
-      moduleVersion: '0.2.0',
-    });
-
-    expect(result.success).toBe(true);
   });
 });
 
