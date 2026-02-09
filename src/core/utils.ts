@@ -414,22 +414,22 @@ Tip: The specified path does not exist.
 // ==========================================
 
 export const AZTFEXPORT_INSTALLATION_HELP: Record<string, string> = {
-  windows: 'winget install Microsoft.AzureTerraformExporter',
+  windows: 'winget install aztfexport',
   macos: 'brew install aztfexport',
   linux: 'Download from https://github.com/Azure/aztfexport/releases',
   documentation: 'https://learn.microsoft.com/azure/developer/terraform/azure-export-for-terraform/export-first-resources',
 };
 
 export const CONFTEST_INSTALLATION_HELP: Record<string, string> = {
-  windows: 'choco install conftest',
+  windows: 'scoop install conftest',
   macos: 'brew install conftest',
   linux: 'Download from https://github.com/open-policy-agent/conftest/releases',
-  documentation: 'https://www.conftest.dev/',
+  documentation: 'https://www.conftest.dev/install/',
 };
 
 export const TERRAFORM_INSTALLATION_HELP: Record<string, string> = {
   windows: 'winget install HashiCorp.Terraform',
   macos: 'brew install terraform',
   linux: 'See https://developer.hashicorp.com/terraform/install',
-  documentation: 'https://developer.hashicorp.com/terraform/downloads',
+  documentation: 'https://developer.hashicorp.com/terraform/install',
 };
