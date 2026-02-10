@@ -509,7 +509,6 @@ export function getConftestInstallationHelp(): InstallationHelp {
   return buildInstallationHelp(
     'conftest',
     [
-      { platform: 'windows', method: 'scoop', command: 'scoop install conftest', managesPath: true },
       { platform: 'macos', method: 'brew', command: 'brew install conftest', managesPath: true },
       { platform: 'linux', method: 'brew', command: 'brew install conftest', managesPath: true },
       { platform: 'linux', method: 'manual', command: 'LATEST_VERSION=$(wget -O - "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep \'"tag_name":\' | sed -E \'s/.*"([^"]+)".*/\\1/\' | cut -c 2-) && wget "https://github.com/open-policy-agent/conftest/releases/download/v${LATEST_VERSION}/conftest_${LATEST_VERSION}_Linux_x86_64.tar.gz" && tar xzf conftest_${LATEST_VERSION}_Linux_x86_64.tar.gz && sudo mv conftest /usr/local/bin/', managesPath: false },
@@ -540,7 +539,6 @@ export function getTerraformInstallationHelp(): InstallationHelp {
   return buildInstallationHelp(
     'terraform',
     [
-      { platform: 'windows', method: 'winget', command: 'winget install HashiCorp.Terraform', managesPath: true },
       { platform: 'macos', method: 'brew', command: 'brew tap hashicorp/tap && brew install hashicorp/tap/terraform', managesPath: true },
       { platform: 'linux', method: 'apt', command: 'wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list && sudo apt-get update && sudo apt-get install -y terraform', managesPath: true },
       { platform: 'linux', method: 'dnf', command: 'sudo dnf install -y dnf-plugins-core && sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo && sudo dnf install -y terraform', managesPath: true },
