@@ -347,7 +347,20 @@ npm run dev
 ### Run tests
 
 ```bash
+# Run unit tests
 npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Run integration tests
+npm run test:integration
+
+# Watch mode for integration tests
+npm run test:integration:watch
+
+# Run all tests (unit + integration)
+npm run test:all
 ```
 
 ### Lint
@@ -376,11 +389,13 @@ src/
 │   ├── types.ts        # TypeScript types and Zod schemas
 │   └── utils.ts        # Utility functions
 └── tools/
-    ├── azurerm-docs-provider.ts  # AzureRM documentation
-    ├── azapi-docs-provider.ts    # AzAPI documentation
-    ├── avm-docs-provider.ts      # Azure Verified Modules
-    ├── aztfexport-runner.ts      # Resource export
-    └── conftest-runner.ts        # Policy validation
+    ├── azurerm-docs-provider.ts     # AzureRM provider documentation
+    ├── azapi-docs-provider.ts       # AzAPI provider documentation
+    ├── azapi-schema-generator.ts    # AzAPI schema generation utilities
+    ├── avm-docs-provider.ts         # Azure Verified Modules documentation
+    ├── aztfexport-runner.ts         # Resource export command generation
+    ├── conftest-runner.ts           # Policy validation command generation
+    └── index.ts                     # Tool exports
 ```
 
 ## Contributing
