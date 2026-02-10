@@ -2,8 +2,9 @@
   "name": "@azure/terraform-mcp-server",
   "version": "1.0.0",
   "description": "Azure Terraform MCP Server - Model Context Protocol server for Azure Terraform operations",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "azure-terraform-mcp-server": "./dist/cli.js"
@@ -11,18 +12,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./server": {
       "types": "./dist/server.d.ts",
-      "import": "./dist/server.mjs",
-      "require": "./dist/server.js"
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
     },
     "./tools": {
       "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.mjs",
-      "require": "./dist/tools/index.js"
+      "import": "./dist/tools/index.js",
+      "require": "./dist/tools/index.cjs"
     }
   },
   "files": [
@@ -58,22 +59,21 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "tar": "^7.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/tar": "^6.1.11",
-    "eslint": "^8.57.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "rimraf": "^5.0.5",
-    "tsup": "^8.0.2",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.2"
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "rimraf": "^6.0.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
   }
 }

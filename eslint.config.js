@@ -1,25 +1,20 @@
 import eslint from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
-export default [
+export default tseslint.config(
   eslint.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
     languageOptions: {
-      parser: tsparser,
       parserOptions: {
-        ecmaVersion: 2022,
-        sourceType: 'module',
-        project: './tsconfig.json',
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.node,
       },
-    },
-    plugins: {
-      '@typescript-eslint': tseslint,
     },
     rules: {
       // TypeScript rules
@@ -27,9 +22,8 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'off',
       '@typescript-eslint/prefer-optional-chain': 'error',
-      
+
       // General rules
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-unused-vars': 'off', // Use TypeScript's version
@@ -42,4 +36,4 @@ export default [
   {
     ignores: ['dist/**', 'node_modules/**', '*.js', '*.mjs', '*.cjs'],
   },
-];
+);

@@ -9,10 +9,13 @@
  */
 
 import {
+  createReadStream,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -165,7 +168,7 @@ class GitHubLoader {
       const gunzip = createGunzip();
       const tarExtract = extract({ cwd: tempExtractDir });
 
-      const readStream = require('node:fs').createReadStream(tarPath);
+      const readStream = createReadStream(tarPath);
 
       readStream
         .pipe(gunzip)
@@ -196,13 +199,13 @@ class GitHubLoader {
     for (const entry of entries) {
       const srcPath = join(srcDir, entry);
       const destPath = join(destDir, entry);
-      require('node:fs').renameSync(srcPath, destPath);
+      renameSync(srcPath, destPath);
     }
   }
 
   private removeDir(dir: string): void {
     if (existsSync(dir)) {
-      require('node:fs').rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   }
 }
@@ -363,7 +366,7 @@ class BicepTypesParser {
 
     for (let idx = 0; idx < this.types.length; idx++) {
       const data = this.types[idx];
-      if (data && data.$type === 'ResourceType') {
+      if (data?.$type === 'ResourceType') {
         const name = data.name ?? '';
         const apiVersion = name.includes('@') ? name.split('@')[1] ?? '' : '';
         resourceTypes.push({ index: idx, name, apiVersion });
@@ -975,7 +978,7 @@ export class AzAPISchemaGenerator {
       !forceRegenerate &&
       latestLocalVersion &&
       latestGitHubVersion &&
-      latestLocalVersion === latestGitHubVersion.replace(/^v/, '')
+      latestLocalVersion === latestGitHubVersion?.replace(/^v/, '')
     ) {
       const schemaFile = this.getSchemaFile(`v${latestLocalVersion}`);
       if (existsSync(schemaFile)) {
