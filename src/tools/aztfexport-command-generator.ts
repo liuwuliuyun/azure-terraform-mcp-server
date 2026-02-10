@@ -26,7 +26,7 @@ export function generateExportAzureResourceCommand(
     dryRun = false,
     includeRoleAssignment = false,
     parallelism = 10,
-    continueOnError = false,
+    continueOnError = true,
   } = params;
 
   const args: string[] = ['resource', '--non-interactive', '--plain-ui'];
@@ -61,18 +61,23 @@ export function generateExportAzureResourceCommand(
 
   const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
 
-  return {
+  const result: AztfexportCommandResult = {
     command: 'aztfexport',
     args,
     description: `Export Azure resource: ${resourceId}`,
     outputFolderName,
-    workingDirectory: outputDir || resolveWorkspacePath('.'),
     notes: [
       'This command exports a single Azure resource to Terraform configuration.',
       outputDir ? `Output will be saved to: ${outputDir}` : 'Output will be saved to the current working directory',
       dryRun ? 'This is a dry-run - no files will be created' : 'Terraform files will be generated',
     ],
   };
+
+  if (outputDir) {
+    result.workingDirectory = outputDir;
+  }
+
+  return result;
 }
 
 /**
@@ -90,7 +95,7 @@ export function generateExportAzureResourceGroupCommand(
     dryRun = false,
     includeRoleAssignment = false,
     parallelism = 10,
-    continueOnError = false,
+    continueOnError = true,
   } = params;
 
   const args: string[] = ['resource-group', '--non-interactive', '--plain-ui'];
@@ -125,12 +130,11 @@ export function generateExportAzureResourceGroupCommand(
 
   const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
 
-  return {
+  const result: AztfexportCommandResult = {
     command: 'aztfexport',
     args,
     description: `Export Azure resource group: ${resourceGroupName}`,
     outputFolderName,
-    workingDirectory: outputDir || resolveWorkspacePath('.'),
     notes: [
       'This command exports an entire Azure resource group and all its resources to Terraform configuration.',
       outputDir ? `Output will be saved to: ${outputDir}` : 'Output will be saved to the current working directory',
@@ -138,6 +142,12 @@ export function generateExportAzureResourceGroupCommand(
       `Using provider: ${provider}`,
     ],
   };
+
+  if (outputDir) {
+    result.workingDirectory = outputDir;
+  }
+
+  return result;
 }
 
 /**
@@ -155,7 +165,7 @@ export function generateExportAzureResourcesByQueryCommand(
     dryRun = false,
     includeRoleAssignment = false,
     parallelism = 10,
-    continueOnError = false,
+    continueOnError = true,
   } = params;
 
   const args: string[] = ['query', '--non-interactive', '--plain-ui'];
@@ -190,12 +200,11 @@ export function generateExportAzureResourcesByQueryCommand(
 
   const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
 
-  return {
+  const result: AztfexportCommandResult = {
     command: 'aztfexport',
     args,
     description: `Export Azure resources by query: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
     outputFolderName,
-    workingDirectory: outputDir || resolveWorkspacePath('.'),
     notes: [
       'This command exports Azure resources matching the given Azure Resource Graph query to Terraform configuration.',
       outputDir ? `Output will be saved to: ${outputDir}` : 'Output will be saved to the current working directory',
@@ -204,4 +213,10 @@ export function generateExportAzureResourcesByQueryCommand(
       `Using provider: ${provider}`,
     ],
   };
+
+  if (outputDir) {
+    result.workingDirectory = outputDir;
+  }
+
+  return result;
 }

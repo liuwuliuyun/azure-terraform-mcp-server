@@ -236,7 +236,7 @@ export const ExportAzureResourceParams = z.object({
   dryRun: z.boolean().default(false).describe('Perform a dry run without creating files'),
   includeRoleAssignment: z.boolean().default(false).describe('Include role assignments in export'),
   parallelism: z.number().min(1).max(50).default(10).describe('Number of parallel operations'),
-  continueOnError: z.boolean().default(false).describe('Continue export even if some resources fail'),
+  continueOnError: z.boolean().default(true).describe('Continue export even if some resources fail'),
 });
 
 export const ExportAzureResourceGroupParams = z.object({
@@ -248,7 +248,7 @@ export const ExportAzureResourceGroupParams = z.object({
   dryRun: z.boolean().default(false).describe('Perform a dry run without creating files'),
   includeRoleAssignment: z.boolean().default(false).describe('Include role assignments in export'),
   parallelism: z.number().min(1).max(50).default(10).describe('Number of parallel operations'),
-  continueOnError: z.boolean().default(false).describe('Continue export even if some resources fail'),
+  continueOnError: z.boolean().default(true).describe('Continue export even if some resources fail'),
 });
 
 export const ExportAzureResourcesByQueryParams = z.object({
@@ -260,7 +260,7 @@ export const ExportAzureResourcesByQueryParams = z.object({
   dryRun: z.boolean().default(false).describe('Perform a dry run without creating files'),
   includeRoleAssignment: z.boolean().default(false).describe('Include role assignments in export'),
   parallelism: z.number().min(1).max(50).default(10).describe('Number of parallel operations'),
-  continueOnError: z.boolean().default(false).describe('Continue export even if some resources fail'),
+  continueOnError: z.boolean().default(true).describe('Continue export even if some resources fail'),
 });
 
 export const CheckConftestInstallationParams = z.object({});
