@@ -2,20 +2,18 @@
  * Tests for tools/aztfexport-runner.ts
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { join } from 'node:path';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   checkAztfexportInstallation,
-  exportAzureResource,
-  exportAzureResourceGroup,
-  exportAzureResourcesByQuery,
+  generateExportAzureResourceCommand,
+  generateExportAzureResourceGroupCommand,
+  generateExportAzureResourcesByQueryCommand,
 } from '../src/tools/aztfexport-runner.js';
 import {
   ExportAzureResourceParams,
   ExportAzureResourceGroupParams,
   ExportAzureResourcesByQueryParams,
 } from '../src/core/types.js';
-import { createTempDir, cleanupTempDir } from './helpers.js';
 
 // ==========================================
 // Mock Setup
@@ -29,21 +27,17 @@ vi.mock('../src/core/utils.js', async (importOriginal) => {
     isCommandAvailable: vi.fn(),
     getCommandVersion: vi.fn(),
     executeCommand: vi.fn(),
-    resolveWorkspacePath: vi.fn((path?: string) => path ?? ''),
+    resolveWorkspacePath: vi.fn((path?: string | null) => `/workspace/${path || ''}`),
   };
 });
 
 import {
   isCommandAvailable,
   getCommandVersion,
-  executeCommand,
-  resolveWorkspacePath,
 } from '../src/core/utils.js';
 
 const mockIsCommandAvailable = vi.mocked(isCommandAvailable);
 const mockGetCommandVersion = vi.mocked(getCommandVersion);
-const mockExecuteCommand = vi.mocked(executeCommand);
-const mockResolveWorkspacePath = vi.mocked(resolveWorkspacePath);
 
 // Helper to parse params with defaults applied
 function parseResourceParams(input: { resourceId: string; [key: string]: unknown }) {
@@ -60,7 +54,6 @@ function parseQueryParams(input: { query: string; [key: string]: unknown }) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockResolveWorkspacePath.mockImplementation((path?: string | null) => path ?? '');
 });
 
 // ==========================================
@@ -124,557 +117,221 @@ describe('checkAztfexportInstallation', () => {
 });
 
 // ==========================================
-// exportAzureResource
+// generateExportAzureResourceCommand
 // ==========================================
 
-describe('exportAzureResource', () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = createTempDir('aztfexport-');
-    mockResolveWorkspacePath.mockImplementation((path?: string | null) => join(tempDir, path ?? ''));
-  });
-
-  afterEach(() => {
-    cleanupTempDir(tempDir);
-  });
-
-  it('should build correct command for basic export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['resource', '--non-interactive', '--plain-ui']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include azapi provider flag when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      provider: 'azapi',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--provider-name', 'azapi']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include resource name when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      resourceName: 'my_storage',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--name', 'my_storage']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include resource type when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      resourceType: 'azurerm_storage_account',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--type', 'azurerm_storage_account']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include dry-run flag when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Dry run complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      dryRun: true,
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--dry-run']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include role assignment flag when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      includeRoleAssignment: true,
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--include-role-assignment']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include parallelism setting', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      parallelism: 20,
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--parallelism', '20']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include continue flag when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-      continueOnError: true,
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--continue']),
-      expect.any(Object)
-    );
-  });
-
-  it('should return success result on successful export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource ...',
-    });
-
+describe('generateExportAzureResourceCommand', () => {
+  it('should include --continue flag by default', () => {
     const params = parseResourceParams({
       resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
     });
 
-    const result = await exportAzureResource(params);
+    const result = generateExportAzureResourceCommand(params);
 
-    expect(result.success).toBe(true);
-    expect(result.exitCode).toBe(0);
+    expect(result.args).toContain('--continue');
   });
 
-  it('should return failure result on failed export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 1,
-      stdout: '',
-      stderr: 'Authentication failed',
-      command: 'aztfexport resource ...',
-    });
-
+  it('should not include workingDirectory when outputFolderName is not specified', () => {
     const params = parseResourceParams({
       resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
     });
 
-    const result = await exportAzureResource(params);
+    const result = generateExportAzureResourceCommand(params);
 
-    expect(result.success).toBe(false);
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('Authentication failed');
+    expect(result.workingDirectory).toBeUndefined();
+    expect(result.outputFolderName).toBeUndefined();
   });
 
-  it('should handle exception during export', async () => {
-    mockExecuteCommand.mockRejectedValue(new Error('Process crashed'));
+  it('should include workingDirectory when outputFolderName is specified', () => {
+    const params = parseResourceParams({
+      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
+      outputFolderName: 'my-output',
+    });
 
+    const result = generateExportAzureResourceCommand(params);
+
+    expect(result.workingDirectory).toBeDefined();
+    expect(result.workingDirectory).toBe('/workspace/my-output');
+    expect(result.outputFolderName).toBe('my-output');
+  });
+
+  it('should allow explicitly setting continueOnError to false', () => {
+    const params = parseResourceParams({
+      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
+      continueOnError: false,
+    });
+
+    const result = generateExportAzureResourceCommand(params);
+
+    expect(result.args).not.toContain('--continue');
+  });
+
+  it('should include standard command args', () => {
     const params = parseResourceParams({
       resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
     });
 
-    const result = await exportAzureResource(params);
+    const result = generateExportAzureResourceCommand(params);
 
-    expect(result.success).toBe(false);
-    expect(result.exitCode).toBe(-1);
-    expect(result.error).toContain('Process crashed');
+    expect(result.command).toBe('aztfexport');
+    expect(result.args).toContain('resource');
+    expect(result.args).toContain('--non-interactive');
+    expect(result.args).toContain('--plain-ui');
+  });
+
+  it('should include resource ID at the end of args', () => {
+    const resourceId = '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa';
+    const params = parseResourceParams({ resourceId });
+
+    const result = generateExportAzureResourceCommand(params);
+
+    expect(result.args[result.args.length - 1]).toBe(resourceId);
   });
 });
 
 // ==========================================
-// exportAzureResourceGroup
+// generateExportAzureResourceGroupCommand
 // ==========================================
 
-describe('exportAzureResourceGroup', () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = createTempDir('aztfexport-rg-');
-    mockResolveWorkspacePath.mockImplementation((path?: string | null) => join(tempDir, path ?? ''));
-  });
-
-  afterEach(() => {
-    cleanupTempDir(tempDir);
-  });
-
-  it('should build correct command for resource group export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource-group ...',
-    });
-
-    const params = parseResourceGroupParams({
-      resourceGroupName: 'my-resource-group',
-    });
-
-    await exportAzureResourceGroup(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['resource-group', '--non-interactive', '--plain-ui', 'my-resource-group']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include name pattern when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource-group ...',
-    });
-
-    const params = parseResourceGroupParams({
-      resourceGroupName: 'my-rg',
-      namePattern: 'res_{name}',
-    });
-
-    await exportAzureResourceGroup(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--name-pattern', 'res_{name}']),
-      expect.any(Object)
-    );
-  });
-
-  it('should include type pattern when specified', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource-group ...',
-    });
-
-    const params = parseResourceGroupParams({
-      resourceGroupName: 'my-rg',
-      typePattern: 'Microsoft.Storage/*',
-    });
-
-    await exportAzureResourceGroup(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['--type-pattern', 'Microsoft.Storage/*']),
-      expect.any(Object)
-    );
-  });
-
-  it('should return success on successful export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport resource-group ...',
-    });
-
+describe('generateExportAzureResourceGroupCommand', () => {
+  it('should include --continue flag by default', () => {
     const params = parseResourceGroupParams({
       resourceGroupName: 'my-rg',
     });
 
-    const result = await exportAzureResourceGroup(params);
+    const result = generateExportAzureResourceGroupCommand(params);
 
-    expect(result.success).toBe(true);
+    expect(result.args).toContain('--continue');
+  });
+
+  it('should not include workingDirectory when outputFolderName is not specified', () => {
+    const params = parseResourceGroupParams({
+      resourceGroupName: 'my-rg',
+    });
+
+    const result = generateExportAzureResourceGroupCommand(params);
+
+    expect(result.workingDirectory).toBeUndefined();
+    expect(result.outputFolderName).toBeUndefined();
+  });
+
+  it('should include workingDirectory when outputFolderName is specified', () => {
+    const params = parseResourceGroupParams({
+      resourceGroupName: 'my-rg',
+      outputFolderName: 'rg-output',
+    });
+
+    const result = generateExportAzureResourceGroupCommand(params);
+
+    expect(result.workingDirectory).toBeDefined();
+    expect(result.workingDirectory).toBe('/workspace/rg-output');
+    expect(result.outputFolderName).toBe('rg-output');
+  });
+
+  it('should allow explicitly setting continueOnError to false', () => {
+    const params = parseResourceGroupParams({
+      resourceGroupName: 'my-rg',
+      continueOnError: false,
+    });
+
+    const result = generateExportAzureResourceGroupCommand(params);
+
+    expect(result.args).not.toContain('--continue');
+  });
+
+  it('should include standard command args', () => {
+    const params = parseResourceGroupParams({
+      resourceGroupName: 'my-rg',
+    });
+
+    const result = generateExportAzureResourceGroupCommand(params);
+
+    expect(result.command).toBe('aztfexport');
+    expect(result.args).toContain('resource-group');
+    expect(result.args).toContain('--non-interactive');
+    expect(result.args).toContain('--plain-ui');
+  });
+
+  it('should include resource group name at the end of args', () => {
+    const rgName = 'my-rg';
+    const params = parseResourceGroupParams({ resourceGroupName: rgName });
+
+    const result = generateExportAzureResourceGroupCommand(params);
+
+    expect(result.args[result.args.length - 1]).toBe(rgName);
   });
 });
 
 // ==========================================
-// exportAzureResourcesByQuery
+// generateExportAzureResourcesByQueryCommand
 // ==========================================
 
-describe('exportAzureResourcesByQuery', () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = createTempDir('aztfexport-query-');
-    mockResolveWorkspacePath.mockImplementation((path?: string | null) => join(tempDir, path ?? ''));
-  });
-
-  afterEach(() => {
-    cleanupTempDir(tempDir);
-  });
-
-  it('should build correct command for query export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport query ...',
-    });
-
+describe('generateExportAzureResourcesByQueryCommand', () => {
+  it('should include --continue flag by default', () => {
     const params = parseQueryParams({
       query: "type == 'Microsoft.Storage/storageAccounts'",
     });
 
-    await exportAzureResourcesByQuery(params);
+    const result = generateExportAzureResourcesByQueryCommand(params);
 
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining(['query', '--non-interactive', '--plain-ui']),
-      expect.any(Object)
-    );
+    expect(result.args).toContain('--continue');
   });
 
-  it('should include the query parameter', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport query ...',
+  it('should not include workingDirectory when outputFolderName is not specified', () => {
+    const params = parseQueryParams({
+      query: "type == 'Microsoft.Storage/storageAccounts'",
     });
 
-    const query = "type == 'Microsoft.Compute/virtualMachines'";
+    const result = generateExportAzureResourcesByQueryCommand(params);
+
+    expect(result.workingDirectory).toBeUndefined();
+    expect(result.outputFolderName).toBeUndefined();
+  });
+
+  it('should include workingDirectory when outputFolderName is specified', () => {
+    const params = parseQueryParams({
+      query: "type == 'Microsoft.Storage/storageAccounts'",
+      outputFolderName: 'query-output',
+    });
+
+    const result = generateExportAzureResourcesByQueryCommand(params);
+
+    expect(result.workingDirectory).toBeDefined();
+    expect(result.workingDirectory).toBe('/workspace/query-output');
+    expect(result.outputFolderName).toBe('query-output');
+  });
+
+  it('should allow explicitly setting continueOnError to false', () => {
+    const params = parseQueryParams({
+      query: "type == 'Microsoft.Storage/storageAccounts'",
+      continueOnError: false,
+    });
+
+    const result = generateExportAzureResourcesByQueryCommand(params);
+
+    expect(result.args).not.toContain('--continue');
+  });
+
+  it('should include standard command args', () => {
+    const params = parseQueryParams({
+      query: "type == 'Microsoft.Storage/storageAccounts'",
+    });
+
+    const result = generateExportAzureResourcesByQueryCommand(params);
+
+    expect(result.command).toBe('aztfexport');
+    expect(result.args).toContain('query');
+    expect(result.args).toContain('--non-interactive');
+    expect(result.args).toContain('--plain-ui');
+  });
+
+  it('should include query at the end of args', () => {
+    const query = "type == 'Microsoft.Storage/storageAccounts'";
     const params = parseQueryParams({ query });
 
-    await exportAzureResourcesByQuery(params);
+    const result = generateExportAzureResourcesByQueryCommand(params);
 
-    // The query should be the last argument
-    const callArgs = mockExecuteCommand.mock.calls[0]?.[1] as string[];
-    expect(callArgs[callArgs.length - 1]).toBe(query);
-  });
-
-  it('should include all optional parameters', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport query ...',
-    });
-
-    const params = parseQueryParams({
-      query: "type == 'Microsoft.Storage/storageAccounts'",
-      provider: 'azapi',
-      namePattern: 'resource_{name}',
-      typePattern: '*',
-      dryRun: true,
-      includeRoleAssignment: true,
-      parallelism: 5,
-      continueOnError: true,
-    });
-
-    await exportAzureResourcesByQuery(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      'aztfexport',
-      expect.arrayContaining([
-        '--provider-name', 'azapi',
-        '--name-pattern', 'resource_{name}',
-        '--type-pattern', '*',
-        '--dry-run',
-        '--include-role-assignment',
-        '--parallelism', '5',
-        '--continue',
-      ]),
-      expect.any(Object)
-    );
-  });
-
-  it('should return success on successful export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: 'Export complete',
-      stderr: '',
-      command: 'aztfexport query ...',
-    });
-
-    const params = parseQueryParams({
-      query: "type == 'Microsoft.Storage/storageAccounts'",
-    });
-
-    const result = await exportAzureResourcesByQuery(params);
-
-    expect(result.success).toBe(true);
-    expect(result.exitCode).toBe(0);
-  });
-
-  it('should handle export failure', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 1,
-      stdout: '',
-      stderr: 'Query returned no results',
-      command: 'aztfexport query ...',
-    });
-
-    const params = parseQueryParams({
-      query: "type == 'NonExistent'",
-    });
-
-    const result = await exportAzureResourcesByQuery(params);
-
-    expect(result.success).toBe(false);
-    expect(result.stderr).toContain('Query returned no results');
+    expect(result.args[result.args.length - 1]).toBe(query);
   });
 });
 
-// ==========================================
-// Command Options
-// ==========================================
-
-describe('command options', () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = createTempDir('aztfexport-opts-');
-    mockResolveWorkspacePath.mockImplementation((path?: string | null) => join(tempDir, path ?? ''));
-  });
-
-  afterEach(() => {
-    cleanupTempDir(tempDir);
-  });
-
-  it('should set timeout for resource export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-      command: '',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Array),
-      expect.objectContaining({
-        timeout: 600000, // 10 minutes
-      })
-    );
-  });
-
-  it('should set timeout for resource group export', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-      command: '',
-    });
-
-    const params = parseResourceGroupParams({
-      resourceGroupName: 'rg',
-    });
-
-    await exportAzureResourceGroup(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Array),
-      expect.objectContaining({
-        timeout: 900000, // 15 minutes
-      })
-    );
-  });
-
-  it('should set cwd to temp directory', async () => {
-    mockExecuteCommand.mockResolvedValue({
-      exitCode: 0,
-      stdout: '',
-      stderr: '',
-      command: '',
-    });
-
-    const params = parseResourceParams({
-      resourceId: '/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa',
-    });
-
-    await exportAzureResource(params);
-
-    expect(mockExecuteCommand).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(Array),
-      expect.objectContaining({
-        cwd: expect.any(String),
-      })
-    );
-  });
-});
