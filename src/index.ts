@@ -59,6 +59,8 @@ export type {
   ServerConfig,
   AzureConfig,
   Config,
+  InstallationHelp,
+  PlatformInstallCommand,
 } from './core/types.js';
 
 // Zod schema exports (for runtime validation)
@@ -111,4 +113,7 @@ export {
   findTerraformFiles,
   readJsonFile,
   readDirectoryFiles,
+  getAztfexportInstallationHelp,
+  getConftestInstallationHelp,
+  getTerraformInstallationHelp,
 } from './core/utils.js';

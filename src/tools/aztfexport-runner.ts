@@ -15,8 +15,8 @@ import {
   isCommandAvailable,
   getCommandVersion,
   resolveWorkspacePath,
-  AZTFEXPORT_INSTALLATION_HELP,
-  TERRAFORM_INSTALLATION_HELP,
+  getAztfexportInstallationHelp,
+  getTerraformInstallationHelp,
 } from '../core/utils.js';
 
 // ==========================================
@@ -36,8 +36,8 @@ export async function checkAztfexportInstallation(
     if (!aztfexportAvailable) {
       return {
         installed: false,
-        status: 'aztfexport is not installed or not available in PATH',
-        installationHelp: AZTFEXPORT_INSTALLATION_HELP,
+        status: 'aztfexport is not installed or not available in PATH. Install it using the recommended command below, then run the verify command to confirm.',
+        installationHelp: getAztfexportInstallationHelp(),
       };
     }
 
@@ -57,9 +57,9 @@ export async function checkAztfexportInstallation(
       return {
         installed: true,
         aztfexportVersion: aztfexportVersion ?? 'Unknown',
-        status: 'aztfexport installed but terraform is missing',
-        error: 'terraform is not installed. aztfexport requires terraform >= v0.12',
-        installationHelp: TERRAFORM_INSTALLATION_HELP,
+        status: 'aztfexport is installed but terraform is missing. aztfexport requires terraform >= v0.12. Install terraform using the recommended command below.',
+        error: 'terraform is not installed. aztfexport requires terraform >= v0.12.',
+        installationHelp: getTerraformInstallationHelp(),
       };
     }
 
@@ -73,9 +73,9 @@ export async function checkAztfexportInstallation(
     const message = error instanceof Error ? error.message : String(error);
     return {
       installed: false,
-      status: 'Failed to check installation',
+      status: 'Failed to check installation. Install aztfexport using the recommended command below, then run the verify command to confirm.',
       error: message,
-      installationHelp: AZTFEXPORT_INSTALLATION_HELP,
+      installationHelp: getAztfexportInstallationHelp(),
     };
   }
 }

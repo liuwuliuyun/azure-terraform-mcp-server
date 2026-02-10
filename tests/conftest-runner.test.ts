@@ -24,7 +24,23 @@ vi.mock('../src/core/utils.js', async (importOriginal) => {
     isCommandAvailable: vi.fn(),
     getCommandVersion: vi.fn(),
     resolveWorkspacePath: vi.fn((path?: string | null) => `/workspace/${path || ''}`),
-    CONFTEST_INSTALLATION_HELP: 'Install conftest from https://conftest.dev',
+    getConftestInstallationHelp: () => ({
+      toolName: 'conftest',
+      detectedPlatform: 'win32',
+      recommendedInstallCommand: 'scoop install conftest',
+      verifyCommand: 'conftest --version',
+      allPlatformCommands: [
+        { platform: 'windows', method: 'scoop', command: 'scoop install conftest', managesPath: true },
+        { platform: 'macos', method: 'brew', command: 'brew install conftest', managesPath: true },
+        { platform: 'linux', method: 'brew', command: 'brew install conftest', managesPath: true },
+      ],
+      documentationUrl: 'https://www.conftest.dev/install/',
+      pathGuidance: {
+        windows: 'If installed via scoop, PATH is managed automatically.',
+        macos: 'If installed via brew, PATH is managed automatically.',
+        linux: 'If installed via brew, PATH is managed automatically.',
+      },
+    }),
   };
 });
 

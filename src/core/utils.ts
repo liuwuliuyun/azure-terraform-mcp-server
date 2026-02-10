@@ -413,23 +413,154 @@ Tip: The specified path does not exist.
 // Installation Help Messages
 // ==========================================
 
-export const AZTFEXPORT_INSTALLATION_HELP: Record<string, string> = {
-  windows: 'winget install aztfexport',
-  macos: 'brew install aztfexport',
-  linux: 'Download from https://github.com/Azure/aztfexport/releases',
-  documentation: 'https://learn.microsoft.com/azure/developer/terraform/azure-export-for-terraform/export-first-resources',
-};
+import type { InstallationHelp, PlatformInstallCommand } from './types.js';
 
-export const CONFTEST_INSTALLATION_HELP: Record<string, string> = {
-  windows: 'scoop install conftest',
-  macos: 'brew install conftest',
-  linux: 'Download from https://github.com/open-policy-agent/conftest/releases',
-  documentation: 'https://www.conftest.dev/install/',
-};
+/**
+ * Detect the current platform as a user-friendly label.
+ */
+function detectPlatformLabel(): string {
+  return process.platform; // 'win32' | 'darwin' | 'linux'
+}
 
-export const TERRAFORM_INSTALLATION_HELP: Record<string, string> = {
-  windows: 'winget install HashiCorp.Terraform',
-  macos: 'brew install terraform',
-  linux: 'See https://developer.hashicorp.com/terraform/install',
-  documentation: 'https://developer.hashicorp.com/terraform/install',
-};
+/**
+ * Resolve the recommended install command for the current platform.
+ */
+function resolveRecommendedCommand(commands: PlatformInstallCommand[]): string {
+  const platformMap: Record<string, string> = {
+    win32: 'windows',
+    darwin: 'macos',
+    linux: 'linux',
+  };
+  const mapped = platformMap[process.platform] ?? 'linux';
+  const match = commands.find((c) => c.platform === mapped);
+  return match?.command ?? commands[0]?.command ?? 'See documentation';
+}
+
+/**
+ * Build a structured, agent-friendly InstallationHelp object.
+ *
+ * The returned object is designed for AI agent consumption via MCP:
+ * - `recommendedInstallCommand` is pre-resolved to the server's OS
+ * - `verifyCommand` tells the agent how to confirm installation
+ * - `allPlatformCommands` provides full cross-platform instructions
+ */
+function buildInstallationHelp(
+  toolName: string,
+  platformCommands: PlatformInstallCommand[],
+  documentationUrl: string,
+  verifyCommand: string,
+  pathGuidance: Record<string, string>,
+  additionalNotes?: string[]
+): InstallationHelp {
+  return {
+    toolName,
+    detectedPlatform: detectPlatformLabel(),
+    recommendedInstallCommand: resolveRecommendedCommand(platformCommands),
+    verifyCommand,
+    allPlatformCommands: platformCommands,
+    documentationUrl,
+    pathGuidance,
+    additionalNotes,
+  };
+}
+
+/**
+ * Get structured installation help for Azure Export for Terraform (aztfexport).
+ *
+ * Sources:
+ * - https://github.com/Azure/aztfexport#install
+ * - https://github.com/Azure/aztfexport/releases
+ */
+export function getAztfexportInstallationHelp(): InstallationHelp {
+  return buildInstallationHelp(
+    'aztfexport',
+    [
+      { platform: 'windows', method: 'winget', command: 'winget install aztfexport', managesPath: true },
+      { platform: 'macos', method: 'brew', command: 'brew install aztfexport', managesPath: true },
+      { platform: 'linux', method: 'brew', command: 'brew install aztfexport', managesPath: true },
+      { platform: 'linux', method: 'apt', command: 'curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc && apt-add-repository https://packages.microsoft.com/ubuntu/22.04/prod && apt-get update && apt-get install -y aztfexport', managesPath: true },
+      { platform: 'linux', method: 'dnf', command: 'rpm --import https://packages.microsoft.com/keys/microsoft.asc && dnf install -y https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm && dnf install -y aztfexport', managesPath: true },
+      { platform: 'linux', method: 'manual', command: 'Download the zip for your architecture from https://github.com/Azure/aztfexport/releases, extract it, and move the aztfexport binary to a directory in your PATH (e.g., /usr/local/bin).', managesPath: false },
+      { platform: 'windows', method: 'manual', command: 'Download the zip for your architecture from https://github.com/Azure/aztfexport/releases, extract it, and add the folder containing aztfexport.exe to your system PATH.', managesPath: false },
+    ],
+    'https://github.com/Azure/aztfexport#install',
+    'aztfexport --version',
+    {
+      windows: 'If installed via winget, PATH is managed automatically. For manual install: extract the zip, place aztfexport.exe in a folder (e.g., C:\\Tools\\aztfexport), then add that folder to your system PATH via System Properties > Environment Variables > Path.',
+      macos: 'If installed via brew, PATH is managed automatically. For manual install: extract the zip and run: sudo mv aztfexport /usr/local/bin/',
+      linux: 'If installed via brew/apt/dnf, PATH is managed automatically. For manual install: extract the zip and run: sudo mv aztfexport /usr/local/bin/',
+    },
+    [
+      'aztfexport requires Terraform (>= v0.12) to be installed and available in PATH.',
+      'Ensure you are authenticated to Azure before running export commands (e.g., run: az login).',
+      'On Windows you may need to restart your terminal/shell after installation for PATH changes to take effect.',
+    ]
+  );
+}
+
+/**
+ * Get structured installation help for Conftest.
+ *
+ * Sources:
+ * - https://www.conftest.dev/install/
+ * - https://github.com/open-policy-agent/conftest/releases
+ */
+export function getConftestInstallationHelp(): InstallationHelp {
+  return buildInstallationHelp(
+    'conftest',
+    [
+      { platform: 'windows', method: 'scoop', command: 'scoop install conftest', managesPath: true },
+      { platform: 'macos', method: 'brew', command: 'brew install conftest', managesPath: true },
+      { platform: 'linux', method: 'brew', command: 'brew install conftest', managesPath: true },
+      { platform: 'linux', method: 'manual', command: 'LATEST_VERSION=$(wget -O - "https://api.github.com/repos/open-policy-agent/conftest/releases/latest" | grep \'"tag_name":\' | sed -E \'s/.*"([^"]+)".*/\\1/\' | cut -c 2-) && wget "https://github.com/open-policy-agent/conftest/releases/download/v${LATEST_VERSION}/conftest_${LATEST_VERSION}_Linux_x86_64.tar.gz" && tar xzf conftest_${LATEST_VERSION}_Linux_x86_64.tar.gz && sudo mv conftest /usr/local/bin/', managesPath: false },
+      { platform: 'windows', method: 'manual', command: 'Download the .zip for Windows from https://github.com/open-policy-agent/conftest/releases, extract it, and add the folder containing conftest.exe to your system PATH.', managesPath: false },
+      { platform: 'macos', method: 'manual', command: 'Download the .tar.gz for macOS from https://github.com/open-policy-agent/conftest/releases, extract it, and run: sudo mv conftest /usr/local/bin/', managesPath: false },
+    ],
+    'https://www.conftest.dev/install/',
+    'conftest --version',
+    {
+      windows: 'If installed via scoop, PATH is managed automatically. For manual install: extract the zip, place conftest.exe in a folder (e.g., C:\\Tools\\conftest), then add that folder to your system PATH via System Properties > Environment Variables > Path.',
+      macos: 'If installed via brew, PATH is managed automatically. For manual install: extract the tar.gz and run: sudo mv conftest /usr/local/bin/',
+      linux: 'If installed via brew, PATH is managed automatically. For manual install: extract the tar.gz and run: sudo mv conftest /usr/local/bin/',
+    },
+    [
+      'On Windows you may need to restart your terminal/shell after installation for PATH changes to take effect.',
+    ]
+  );
+}
+
+/**
+ * Get structured installation help for Terraform.
+ *
+ * Sources:
+ * - https://developer.hashicorp.com/terraform/install
+ * - https://github.com/hashicorp/terraform
+ */
+export function getTerraformInstallationHelp(): InstallationHelp {
+  return buildInstallationHelp(
+    'terraform',
+    [
+      { platform: 'windows', method: 'winget', command: 'winget install HashiCorp.Terraform', managesPath: true },
+      { platform: 'macos', method: 'brew', command: 'brew tap hashicorp/tap && brew install hashicorp/tap/terraform', managesPath: true },
+      { platform: 'linux', method: 'apt', command: 'wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list && sudo apt-get update && sudo apt-get install -y terraform', managesPath: true },
+      { platform: 'linux', method: 'dnf', command: 'sudo dnf install -y dnf-plugins-core && sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo && sudo dnf install -y terraform', managesPath: true },
+      { platform: 'linux', method: 'manual', command: 'Download the binary for your architecture from https://developer.hashicorp.com/terraform/install, unzip it, and move the terraform binary to a directory in your PATH (e.g., /usr/local/bin).', managesPath: false },
+      { platform: 'windows', method: 'manual', command: 'Download the .zip from https://developer.hashicorp.com/terraform/install, extract terraform.exe, and add the folder containing it to your system PATH.', managesPath: false },
+    ],
+    'https://developer.hashicorp.com/terraform/install',
+    'terraform --version',
+    {
+      windows: 'If installed via winget, PATH is managed automatically. For manual install: extract terraform.exe to a folder (e.g., C:\\Tools\\terraform), then add that folder to your system PATH via System Properties > Environment Variables > Path. Restart your terminal after.',
+      macos: 'If installed via brew, PATH is managed automatically. For manual install: unzip and run: sudo mv terraform /usr/local/bin/',
+      linux: 'If installed via apt/dnf, PATH is managed automatically. For manual install: unzip and run: sudo mv terraform /usr/local/bin/',
+    },
+    [
+      'On Windows you may need to restart your terminal/shell after installation for PATH changes to take effect.',
+    ]
+  );
+}
+
+// Legacy aliases for backward compatibility (deprecated — prefer the functions above)
+export const AZTFEXPORT_INSTALLATION_HELP = getAztfexportInstallationHelp();
+export const CONFTEST_INSTALLATION_HELP = getConftestInstallationHelp();
+export const TERRAFORM_INSTALLATION_HELP = getTerraformInstallationHelp();

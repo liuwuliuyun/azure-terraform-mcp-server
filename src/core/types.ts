@@ -58,6 +58,52 @@ export interface AzApiDocumentationResult {
 }
 
 // ==========================================
+// Installation Help Types
+// ==========================================
+
+/**
+ * Platform-specific installation command for a tool.
+ */
+export interface PlatformInstallCommand {
+  /** Target platform */
+  platform: 'windows' | 'macos' | 'linux';
+  /** Package manager or method name (e.g., 'winget', 'brew', 'scoop', 'apt', 'dnf', 'manual') */
+  method: string;
+  /** The command(s) to execute. For multi-step installs, join with ' && '. If method is 'manual', this is a URL. */
+  command: string;
+  /** Whether PATH is automatically managed by this method (true for package managers, false for manual) */
+  managesPath: boolean;
+}
+
+/**
+ * Structured installation help for a CLI tool.
+ * Designed for consumption by AI agents via MCP — all fields are
+ * machine-parseable and the recommended command is pre-resolved
+ * to the server's detected platform.
+ */
+export interface InstallationHelp {
+  /** Name of the missing tool */
+  toolName: string;
+  /** Platform detected by the MCP server (win32 | darwin | linux) */
+  detectedPlatform: string;
+  /** The single install command recommended for the detected platform */
+  recommendedInstallCommand: string;
+  /** Command the agent should run after installing to verify success */
+  verifyCommand: string;
+  /** Install commands for all supported platforms */
+  allPlatformCommands: PlatformInstallCommand[];
+  /** Official documentation / install guide URL */
+  documentationUrl: string;
+  /**
+   * Instructions for adding the binary to PATH if a manual install was used.
+   * Keyed by platform. Only relevant when the install method does NOT manage PATH automatically.
+   */
+  pathGuidance: Record<string, string>;
+  /** Optional extra context (e.g., prerequisites) */
+  additionalNotes?: string[];
+}
+
+// ==========================================
 // aztfexport Types
 // ==========================================
 
@@ -69,7 +115,7 @@ export interface AztfexportInstallationResult {
   terraformVersion?: string;
   status: string;
   error?: string;
-  installationHelp?: Record<string, string>;
+  installationHelp?: InstallationHelp;
 }
 
 export interface AztfexportCommandResult {
@@ -138,7 +184,7 @@ export interface ConftestInstallationResult {
   executablePath?: string;
   status: string;
   error?: string;
-  installationHelp?: Record<string, string>;
+  installationHelp?: InstallationHelp;
 }
 
 export interface PolicyViolation {

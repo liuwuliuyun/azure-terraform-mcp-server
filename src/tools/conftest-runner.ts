@@ -14,7 +14,7 @@ import {
   isCommandAvailable,
   getCommandVersion,
   resolveWorkspacePath,
-  CONFTEST_INSTALLATION_HELP,
+  getConftestInstallationHelp,
 } from '../core/utils.js';
 
 // ==========================================
@@ -33,8 +33,8 @@ export async function checkConftestInstallation(
     if (!installed) {
       return {
         installed: false,
-        status: 'Conftest is not installed or not available in PATH',
-        installationHelp: CONFTEST_INSTALLATION_HELP,
+        status: 'Conftest is not installed or not available in PATH. Install it using the recommended command below, then run the verify command to confirm.',
+        installationHelp: getConftestInstallationHelp(),
       };
     }
 
@@ -50,9 +50,9 @@ export async function checkConftestInstallation(
     const message = error instanceof Error ? error.message : String(error);
     return {
       installed: false,
-      status: 'Failed to check installation',
+      status: 'Failed to check installation. Install conftest using the recommended command below, then run the verify command to confirm.',
       error: message,
-      installationHelp: CONFTEST_INSTALLATION_HELP,
+      installationHelp: getConftestInstallationHelp(),
     };
   }
 }

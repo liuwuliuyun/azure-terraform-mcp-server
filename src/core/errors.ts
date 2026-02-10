@@ -5,6 +5,8 @@
  * and contextual information for debugging and logging.
  */
 
+import type { InstallationHelp } from './types.js';
+
 /**
  * Error codes for categorizing errors.
  */
@@ -103,11 +105,11 @@ export class McpServerError extends Error {
  */
 export class ToolNotInstalledError extends McpServerError {
   public readonly toolName: string;
-  public readonly installationHelp?: Record<string, string>;
+  public readonly installationHelp?: InstallationHelp;
 
   constructor(
     toolName: string,
-    installationHelp?: Record<string, string>
+    installationHelp?: InstallationHelp
   ) {
     super(
       `${toolName} is not installed or not available in PATH`,

@@ -158,8 +158,19 @@ describe('ToolNotInstalledError', () => {
 
   it('should include installation help', () => {
     const help = {
-      windows: 'winget install terraform',
-      macos: 'brew install terraform',
+      toolName: 'terraform',
+      detectedPlatform: 'win32',
+      recommendedInstallCommand: 'winget install HashiCorp.Terraform',
+      verifyCommand: 'terraform --version',
+      allPlatformCommands: [
+        { platform: 'windows' as const, method: 'winget', command: 'winget install HashiCorp.Terraform', managesPath: true },
+        { platform: 'macos' as const, method: 'brew', command: 'brew tap hashicorp/tap && brew install hashicorp/tap/terraform', managesPath: true },
+      ],
+      documentationUrl: 'https://developer.hashicorp.com/terraform/install',
+      pathGuidance: {
+        windows: 'If installed via winget, PATH is managed automatically.',
+        macos: 'If installed via brew, PATH is managed automatically.',
+      },
     };
     const error = new ToolNotInstalledError('terraform', help);
 
