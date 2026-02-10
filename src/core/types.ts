@@ -72,6 +72,15 @@ export interface AztfexportInstallationResult {
   installationHelp?: Record<string, string>;
 }
 
+export interface AztfexportCommandResult {
+  command: string;
+  args: string[];
+  description: string;
+  outputFolderName?: string;
+  workingDirectory?: string;
+  notes?: string[];
+}
+
 export interface AztfexportResult {
   exitCode: number;
   success: boolean;
@@ -138,6 +147,16 @@ export interface PolicyViolation {
   policy: string;
   message: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface ConftestCommandResult {
+  command: string;
+  args: string[];
+  description: string;
+  workspaceFolder?: string;
+  workingDirectory?: string;
+  policySet?: string;
+  notes?: string[];
 }
 
 export interface ConftestValidationResult {

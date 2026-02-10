@@ -120,6 +120,37 @@ Add to your VS Code MCP configuration (`.vscode/mcp.json` or user settings):
 }
 ```
 
+## Command Generation Approach
+
+The aztfexport and conftest tools use a **command generation model** rather than direct execution. Instead of running these tools server-side, the MCP server generates the appropriate command with all parameters and returns it to the agent for local execution.
+
+### Benefits
+
+- **Agent Control**: The agent (Claude, VS Code, etc.) controls command execution timing and environment
+- **Local Execution**: Commands run in the agent's environment with proper dependencies
+- **Better Error Handling**: The agent can handle failures and retry with different parameters
+- **Transparency**: Full command visibility - agents can inspect, modify, and understand the exact commands being run
+- **Scalability**: No long-running processes or resource constraints on the server
+
+### How It Works
+
+1. **Generate Command**: Call a tool like `generate_aztfexport_resource_command` with parameters
+2. **Receive Command Structure**: Get back the command, arguments, working directory, and instructions
+3. **Execute Locally**: The agent runs the command in its environment
+4. **Process Results**: The agent handles the output files or validation results
+
+### Example Flow
+
+```
+Agent → "Generate aztfexport command for resource X"
+  ↓
+MCP Server → Returns: { command: "aztfexport", args: [...], notes: [...] }
+  ↓
+Agent → Runs: "aztfexport resource X --arg1 value1 ..."
+  ↓
+Agent → Processes generated Terraform files
+```
+
 ## Available Tools
 
 ### Documentation Tools
@@ -186,9 +217,9 @@ Check if aztfexport and terraform are installed.
 
 **Parameters:** None
 
-#### `export_azure_resource`
+#### `generate_aztfexport_resource_command`
 
-Export a single Azure resource to Terraform.
+Generate an aztfexport command to export a single Azure resource to Terraform configuration. The command is returned for the agent to execute locally.
 
 **Parameters:**
 - `resourceId` (required): Full Azure resource ID
@@ -201,9 +232,11 @@ Export a single Azure resource to Terraform.
 - `parallelism` (optional): Parallel operations (1-50, default: `10`)
 - `continueOnError` (optional): Continue on errors (default: `false`)
 
-#### `export_azure_resource_group`
+**Returns:** Command structure with executable command, arguments, and instructions for local execution
 
-Export an entire resource group.
+#### `generate_aztfexport_resource_group_command`
+
+Generate an aztfexport command to export an entire resource group and all its resources to Terraform configuration. The command is returned for the agent to execute locally.
 
 **Parameters:**
 - `resourceGroupName` (required): Name of the resource group
@@ -216,15 +249,19 @@ Export an entire resource group.
 - `parallelism` (optional): Parallel operations
 - `continueOnError` (optional): Continue on errors
 
-#### `export_azure_resources_by_query`
+**Returns:** Command structure with executable command, arguments, and instructions for local execution
 
-Export resources matching an Azure Resource Graph query.
+#### `generate_aztfexport_resources_by_query_command`
+
+Generate an aztfexport command to export resources matching an Azure Resource Graph query to Terraform configuration. The command is returned for the agent to execute locally.
 
 **Parameters:**
 - `query` (required): Azure Resource Graph query (WHERE clause)
 - `outputFolderName` (optional): Output folder name
 - `provider` (optional): `azurerm` or `azapi`
 - Other options same as resource group export
+
+**Returns:** Command structure with executable command, arguments, and instructions for local execution
 
 ### Policy Validation Tools
 
@@ -234,9 +271,9 @@ Check if Conftest is installed.
 
 **Parameters:** None
 
-#### `run_conftest_workspace_validation`
+#### `generate_conftest_workspace_validation_command`
 
-Validate Terraform files against policies.
+Generate a conftest command to validate Terraform files in a workspace folder against Azure security policies. The command is returned for the agent to execute locally.
 
 **Parameters:**
 - `workspaceFolder` (required): Path to the workspace folder
@@ -244,15 +281,19 @@ Validate Terraform files against policies.
 - `severityFilter` (optional): `high`, `medium`, `low`, or `info`
 - `customPolicies` (optional): Comma-separated custom policy paths
 
-#### `run_conftest_workspace_plan_validation`
+**Returns:** Command structure with executable command, arguments, working directory, and detailed instructions for local execution
 
-Validate Terraform plan files against policies.
+#### `generate_conftest_workspace_plan_validation_command`
+
+Generate a conftest command to validate Terraform plan files against Azure security policies. The command is returned for the agent to execute locally.
 
 **Parameters:**
 - `folderName` (required): Folder containing the plan file
 - `policySet` (optional): Policy set to use
 - `severityFilter` (optional): Severity filter
 - `customPolicies` (optional): Custom policy paths
+
+**Returns:** Command structure with executable command, arguments, working directory, and detailed instructions for local execution
 
 ## Library Usage
 
@@ -263,7 +304,8 @@ import {
   createServer,
   getAzureRMProviderDocumentation,
   listAvmModules,
-  exportAzureResource,
+  generateExportAzureResourceCommand_impl,
+  generateConftestWorkspaceValidationCommand_impl,
 } from '@azure/terraform-mcp-server';
 
 // Get documentation programmatically
@@ -275,10 +317,16 @@ const docs = await getAzureRMProviderDocumentation({
 // List AVM modules
 const modules = await listAvmModules({});
 
-// Export a resource
-const result = await exportAzureResource({
+// Generate an aztfexport command
+const exportCommand = await generateExportAzureResourceCommand_impl({
   resourceId: '/subscriptions/.../resourceGroups/.../providers/...',
   provider: 'azurerm',
+});
+
+// Generate a conftest command
+const conftestCommand = await generateConftestWorkspaceValidationCommand_impl({
+  workspaceFolder: './terraform',
+  policySet: 'avmsec',
 });
 ```
 

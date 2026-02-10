@@ -29,13 +29,13 @@ export {
 
 export {
   checkAztfexportInstallation,
-  exportAzureResource,
-  exportAzureResourceGroup,
-  exportAzureResourcesByQuery,
+  generateExportAzureResourceCommand_impl,
+  generateExportAzureResourceGroupCommand_impl,
+  generateExportAzureResourcesByQueryCommand_impl,
 } from './aztfexport-runner.js';
 
 export {
   checkConftestInstallation,
-  runConftestWorkspaceValidation,
-  runConftestWorkspacePlanValidation,
+  generateConftestWorkspaceValidationCommand_impl,
+  generateConftestWorkspacePlanValidationCommand_impl,
 } from './conftest-runner.js';

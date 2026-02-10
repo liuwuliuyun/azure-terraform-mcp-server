@@ -39,15 +39,15 @@ import {
 
 import {
   checkAztfexportInstallation,
-  exportAzureResource,
-  exportAzureResourceGroup,
-  exportAzureResourcesByQuery,
+  generateExportAzureResourceCommand_impl,
+  generateExportAzureResourceGroupCommand_impl,
+  generateExportAzureResourcesByQueryCommand_impl,
 } from './tools/aztfexport-runner.js';
 
 import {
   checkConftestInstallation,
-  runConftestWorkspaceValidation,
-  runConftestWorkspacePlanValidation,
+  generateConftestWorkspaceValidationCommand_impl,
+  generateConftestWorkspacePlanValidationCommand_impl,
 } from './tools/conftest-runner.js';
 
 /**
@@ -183,24 +183,24 @@ export function createServer(): McpServer {
   );
 
   server.tool(
-    'export_azure_resource',
-    'Export a single Azure resource to Terraform configuration using aztfexport.',
+    'generate_aztfexport_resource_command',
+    'Generate an aztfexport command to export a single Azure resource to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourceParams.shape,
-    createHandler(exportAzureResource)
+    createHandler(generateExportAzureResourceCommand_impl)
   );
 
   server.tool(
-    'export_azure_resource_group',
-    'Export an Azure resource group and all its resources to Terraform configuration using aztfexport.',
+    'generate_aztfexport_resource_group_command',
+    'Generate an aztfexport command to export an Azure resource group and all its resources to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourceGroupParams.shape,
-    createHandler(exportAzureResourceGroup)
+    createHandler(generateExportAzureResourceGroupCommand_impl)
   );
 
   server.tool(
-    'export_azure_resources_by_query',
-    'Export Azure resources matching an Azure Resource Graph query to Terraform configuration.',
+    'generate_aztfexport_resources_by_query_command',
+    'Generate an aztfexport command to export Azure resources matching an Azure Resource Graph query to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourcesByQueryParams.shape,
-    createHandler(exportAzureResourcesByQuery)
+    createHandler(generateExportAzureResourcesByQueryCommand_impl)
   );
 
   // ==========================================
@@ -215,17 +215,17 @@ export function createServer(): McpServer {
   );
 
   server.tool(
-    'run_conftest_workspace_validation',
-    'Validate Terraform files in a workspace folder against Azure security policies using Conftest.',
+    'generate_conftest_workspace_validation_command',
+    'Generate a conftest command to validate Terraform files in a workspace folder against Azure security policies. The command is returned for the agent to execute locally.',
     RunConftestWorkspaceValidationParams.shape,
-    createHandler(runConftestWorkspaceValidation)
+    createHandler(generateConftestWorkspaceValidationCommand_impl)
   );
 
   server.tool(
-    'run_conftest_workspace_plan_validation',
-    'Validate Terraform plan files against Azure security policies using Conftest.',
+    'generate_conftest_workspace_plan_validation_command',
+    'Generate a conftest command to validate Terraform plan files against Azure security policies. The command is returned for the agent to execute locally.',
     RunConftestWorkspacePlanValidationParams.shape,
-    createHandler(runConftestWorkspacePlanValidation)
+    createHandler(generateConftestWorkspacePlanValidationCommand_impl)
   );
 
   return server;

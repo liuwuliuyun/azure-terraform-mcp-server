@@ -26,15 +26,15 @@ export {
 
 export {
   checkAztfexportInstallation,
-  exportAzureResource,
-  exportAzureResourceGroup,
-  exportAzureResourcesByQuery,
+  generateExportAzureResourceCommand_impl,
+  generateExportAzureResourceGroupCommand_impl,
+  generateExportAzureResourcesByQueryCommand_impl,
 } from './tools/aztfexport-runner.js';
 
 export {
   checkConftestInstallation,
-  runConftestWorkspaceValidation,
-  runConftestWorkspacePlanValidation,
+  generateConftestWorkspaceValidationCommand_impl,
+  generateConftestWorkspacePlanValidationCommand_impl,
 } from './tools/conftest-runner.js';
 
 // Type exports
@@ -46,11 +46,13 @@ export type {
   AzApiDocumentationResult,
   AztfexportProvider,
   AztfexportInstallationResult,
+  AztfexportCommandResult,
   AztfexportResult,
   ExportResourceOptions,
   ExportResourceGroupOptions,
   ExportQueryOptions,
   ConftestInstallationResult,
+  ConftestCommandResult,
   PolicyViolation,
   ConftestValidationResult,
   CommandResult,
