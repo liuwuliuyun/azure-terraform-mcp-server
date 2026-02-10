@@ -132,7 +132,7 @@ export function generateExportAzureResourceCommand(
 
   args.push(resourceId);
 
-  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
+  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName, true) : undefined;
 
   const result: AztfexportCommandResult = {
     command: 'aztfexport',
@@ -201,7 +201,7 @@ export function generateExportAzureResourceGroupCommand(
 
   args.push(resourceGroupName);
 
-  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
+  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName, true) : undefined;
 
   const result: AztfexportCommandResult = {
     command: 'aztfexport',
@@ -271,7 +271,7 @@ export function generateExportAzureResourcesByQueryCommand(
 
   args.push(query);
 
-  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName) : undefined;
+  const outputDir = outputFolderName ? resolveWorkspacePath(outputFolderName, true) : undefined;
 
   const result: AztfexportCommandResult = {
     command: 'aztfexport',

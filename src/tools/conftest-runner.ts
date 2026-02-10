@@ -69,7 +69,7 @@ export function generateConftestWorkspaceValidationCommand(
 ): ConftestCommandResult {
   const { workspaceFolder, policySet = 'all', severityFilter, customPolicies } = params;
 
-  const workspacePath = resolveWorkspacePath(workspaceFolder.trim());
+  const workspacePath = resolveWorkspacePath(workspaceFolder.trim(), true);
   const args: string[] = ['test', '--all-namespaces'];
 
   // Add default policy paths based on policy set
@@ -144,7 +144,7 @@ export function generateConftestWorkspacePlanValidationCommand(
 ): ConftestCommandResult {
   const { folderName, policySet = 'all', severityFilter, customPolicies } = params;
 
-  const workspacePath = resolveWorkspacePath(folderName.trim());
+  const workspacePath = resolveWorkspacePath(folderName.trim(), true);
   const args: string[] = ['test', '--all-namespaces'];
 
   // Add default policy paths based on policy set
