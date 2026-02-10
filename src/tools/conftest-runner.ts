@@ -118,12 +118,25 @@ export function generateConftestWorkspaceValidationCommand(
   notes.push('');
   notes.push('Steps to run this command:');
   notes.push('1. Ensure conftest is installed: https://www.conftest.dev/');
-  notes.push('2. Ensure the policy repository is cloned to ./policy directory');
+  notes.push('2. Download the Azure policy library (see below)');
   notes.push('3. If using avmsec with severity filter, create the severity exception file');
   notes.push('4. Run: conftest ' + args.join(' '));
   notes.push('');
-  notes.push('To clone the AVM policy repository:');
+  notes.push('=== How to download the Azure policy library ===');
+  notes.push('');
+  notes.push('Clone the policy repository into the workspace:');
+  notes.push('  cd ' + workspacePath);
   notes.push('  git clone https://github.com/Azure/policy-library-avm.git policy');
+  notes.push('');
+  notes.push('To update an existing policy library:');
+  notes.push('  cd ' + workspacePath + '/policy && git pull');
+  notes.push('');
+  notes.push('After cloning, the policy directory will contain the following policy sets:');
+  notes.push('  - policy/                                          → All policies (use policySet "all")');
+  notes.push('  - policy/Azure-Proactive-Resiliency-Library-v2/    → Azure resiliency policies (use policySet "Azure-Proactive-Resiliency-Library-v2")');
+  notes.push('  - policy/avmsec/                                   → AVM security policies (use policySet "avmsec")');
+  notes.push('');
+  notes.push('Repository URL: https://github.com/Azure/policy-library-avm');
 
   return {
     command: 'conftest',
@@ -200,8 +213,24 @@ export function generateConftestWorkspacePlanValidationCommand(
   notes.push('Steps to run this command:');
   notes.push('1. Navigate to the folder: cd ' + workspacePath);
   notes.push('2. Convert plan file if needed: terraform show -json tfplan.binary > tfplan.json');
-  notes.push('3. Ensure policy directory is present: git clone https://github.com/Azure/policy-library-avm.git policy');
+  notes.push('3. Download the Azure policy library (see below)');
   notes.push('4. Run: conftest ' + args.join(' '));
+  notes.push('');
+  notes.push('=== How to download the Azure policy library ===');
+  notes.push('');
+  notes.push('Clone the policy repository into the workspace:');
+  notes.push('  cd ' + workspacePath);
+  notes.push('  git clone https://github.com/Azure/policy-library-avm.git policy');
+  notes.push('');
+  notes.push('To update an existing policy library:');
+  notes.push('  cd ' + workspacePath + '/policy && git pull');
+  notes.push('');
+  notes.push('After cloning, the policy directory will contain the following policy sets:');
+  notes.push('  - policy/                                          → All policies (use policySet "all")');
+  notes.push('  - policy/Azure-Proactive-Resiliency-Library-v2/    → Azure resiliency policies (use policySet "Azure-Proactive-Resiliency-Library-v2")');
+  notes.push('  - policy/avmsec/                                   → AVM security policies (use policySet "avmsec")');
+  notes.push('');
+  notes.push('Repository URL: https://github.com/Azure/policy-library-avm');
 
   return {
     command: 'conftest',
