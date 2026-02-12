@@ -18,15 +18,17 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 - **Conftest Integration** - Validate Terraform configurations against Azure security policies
 - **AVM Security Policies** - Built-in support for Azure Verified Modules security policy sets
 - **Custom Policy Support** - Use your own OPA/Rego policies for validation
+- **Automated Conftest Setup** - Platform-aware auto-installation of Conftest with intelligent package manager fallbacks (brew, apt, scoop, choco, etc.)
+- **Policy Library Management** - Automatic cloning and updating of Azure policy libraries from GitHub
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js >= 18.0.0
+- Node.js >= 20.0.0
 - npm or yarn
 - Optional: [aztfexport](https://github.com/Azure/aztfexport) for resource export functionality
-- Optional: [Conftest](https://www.conftest.dev/) for policy validation
+- Optional: [Conftest](https://www.conftest.dev/) for policy validation (can be auto-installed via `setup_conftest_environment`)
 - Optional: [Terraform](https://www.terraform.io/) for plan generation and export
 
 ### Install from npm
@@ -267,9 +269,11 @@ Generate an aztfexport command to export resources matching an Azure Resource Gr
 
 #### `check_conftest_installation`
 
-Check if Conftest is installed.
+Check if Conftest is installed and get version information.
 
-**Parameters:** None
+**Parameters:**
+- `workspacePath` (optional): Path to workspace for policy download
+- `autoSetup` (optional): Enable automatic setup with user confirmation (default: `false`)
 
 #### `generate_conftest_workspace_validation_command`
 
@@ -297,40 +301,31 @@ Generate a conftest command to validate Terraform plan files against Azure secur
 
 #### `setup_conftest_environment`
 
-Automatically setup Conftest environment: checks installation, installs if needed, downloads policies, and validates everything is working. This is a comprehensive one-step setup that requires no manual intervention.
+Automatically setup Conftest environment: checks installation, installs if needed, downloads policies, and validates everything is working. This is a comprehensive one-step setup that handles platform-aware installation with intelligent fallbacks.
 
 **Parameters:**
-- `autoInstall` (optional): Automatically install conftest if not found (default: `false`)
-- `platform` (optional): Explicit platform override (`windows`, `macos`, `linux`)
-- `policyLibraryPath` (optional): Custom path for policy library
-- `dryRun` (optional): Preview without making changes (default: `false`)
+- `workspacePath` (optional): Path to workspace for policy download (defaults to current directory)
+- `confirmInstall` (optional): User confirmed they want to proceed with installation (default: `false`)
+- `skipPolicies` (optional): Skip policy library setup (default: `false`)
 
 **Returns:** Setup result with comprehensive status report including:
 - Installation status and version
 - Policy library status and available policy sets
-- Validation results
-- Detailed next steps if any issues found
+- Actions taken (installation, policy clone/update)
+- Restart requirements and next steps
 
 **Example Response:**
 ```json
 {
   "success": true,
-  "conftestStatus": {
-    "installed": true,
-    "version": "0.60.0",
-    "path": "/usr/local/bin/conftest"
-  },
-  "policyStatus": {
-    "exists": true,
-    "path": "/Users/user/.azure-terraform-mcp/conftest-policies",
-    "availableSets": ["all", "Azure-Proactive-Resiliency-Library-v2", "avmsec"]
-  },
-  "validated": true,
-  "messages": [
-    "✓ Conftest is installed and working",
-    "✓ Policy library downloaded and ready",
-    "✓ Environment setup complete"
-  ]
+  "message": "✅ Conftest v0.55.0 | ✅ Policies available (2 sets)",
+  "conftestInstalled": true,
+  "conftestVersion": "0.55.0",
+  "policiesAvailable": true,
+  "policySets": ["avmsec", "Azure-Proactive-Resiliency-Library-v2"],
+  "actionsTaken": ["conftest-install", "policy-clone"],
+  "requiresRestart": false,
+  "readyToValidate": true
 }
 ```
 
@@ -345,7 +340,6 @@ import {
   listAvmModules,
   generateExportAzureResourceCommand_impl,
   generateConftestWorkspaceValidationCommand_impl,
-  setupConftestEnvironment,
 } from '@azure/terraform-mcp-server';
 
 // Get documentation programmatically
@@ -363,17 +357,39 @@ const exportCommand = await generateExportAzureResourceCommand_impl({
   provider: 'azurerm',
 });
 
-// Setup Conftest environment automatically
-const setupResult = await setupConftestEnvironment({
-  autoInstall: true,
-  platform: 'windows',
-});
 // Generate a conftest command
 const conftestCommand = await generateConftestWorkspaceValidationCommand_impl({
   workspaceFolder: './terraform',
   policySet: 'avmsec',
 });
 ```
+
+### Conftest Auto-Setup
+
+The server includes automated Conftest installation and policy management, available via the `tools` sub-path export:
+
+```typescript
+import {
+  setupConftestEnvironment,
+  installConftest,
+  detectPlatform,
+  clonePolicyLibrary,
+  getPolicyStatus,
+} from '@azure/terraform-mcp-server/tools';
+
+// Full automated setup (install conftest + download policies)
+const result = await setupConftestEnvironment({
+  workspacePath: './terraform',
+  confirmInstall: true,
+  skipPolicies: false,
+});
+
+if (result.readyToValidate) {
+  console.log(`Conftest ${result.conftestVersion} ready`);
+}
+```
+
+For the full API reference, advanced usage examples, error handling, and troubleshooting, see the [Conftest Auto-Setup Guide](docs/conftest-setup.md).
 
 ## Development
 
@@ -429,6 +445,7 @@ src/
 ├── server.ts           # MCP server setup and tool registration
 ├── index.ts            # Library exports
 ├── core/
+│   ├── cache-manager.ts # Unified cache management (~/.azure-terraform-mcp/)
 │   ├── config.ts       # Configuration management
 │   ├── errors.ts       # Custom error classes
 │   ├── types.ts        # TypeScript types and Zod schemas
@@ -440,8 +457,15 @@ src/
     ├── avm-docs-provider.ts         # Azure Verified Modules documentation
     ├── aztfexport-runner.ts         # Resource export command generation
     ├── conftest-runner.ts           # Policy validation command generation
+    ├── conftest-auto-installer.ts   # Platform-aware conftest auto-installation
+    ├── conftest-setup.ts            # Conftest setup orchestrator
+    ├── policy-manager.ts            # Policy library management (clone/update)
     └── index.ts                     # Tool exports
 ```
+
+## Documentation
+
+- [Conftest Auto-Setup Guide](docs/conftest-setup.md) — Detailed API reference, usage examples, error handling, and troubleshooting for the automated Conftest installation and policy management system
 
 ## Contributing
 
