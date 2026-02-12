@@ -295,6 +295,45 @@ Generate a conftest command to validate Terraform plan files against Azure secur
 
 **Returns:** Command structure with executable command, arguments, working directory, and detailed instructions for local execution
 
+#### `setup_conftest_environment`
+
+Automatically setup Conftest environment: checks installation, installs if needed, downloads policies, and validates everything is working. This is a comprehensive one-step setup that requires no manual intervention.
+
+**Parameters:**
+- `autoInstall` (optional): Automatically install conftest if not found (default: `false`)
+- `platform` (optional): Explicit platform override (`windows`, `macos`, `linux`)
+- `policyLibraryPath` (optional): Custom path for policy library
+- `dryRun` (optional): Preview without making changes (default: `false`)
+
+**Returns:** Setup result with comprehensive status report including:
+- Installation status and version
+- Policy library status and available policy sets
+- Validation results
+- Detailed next steps if any issues found
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "conftestStatus": {
+    "installed": true,
+    "version": "0.60.0",
+    "path": "/usr/local/bin/conftest"
+  },
+  "policyStatus": {
+    "exists": true,
+    "path": "/Users/user/.azure-terraform-mcp/conftest-policies",
+    "availableSets": ["all", "Azure-Proactive-Resiliency-Library-v2", "avmsec"]
+  },
+  "validated": true,
+  "messages": [
+    "✓ Conftest is installed and working",
+    "✓ Policy library downloaded and ready",
+    "✓ Environment setup complete"
+  ]
+}
+```
+
 ## Library Usage
 
 You can also use this package as a library in your own applications:
@@ -306,6 +345,7 @@ import {
   listAvmModules,
   generateExportAzureResourceCommand_impl,
   generateConftestWorkspaceValidationCommand_impl,
+  setupConftestEnvironment,
 } from '@azure/terraform-mcp-server';
 
 // Get documentation programmatically
@@ -323,6 +363,11 @@ const exportCommand = await generateExportAzureResourceCommand_impl({
   provider: 'azurerm',
 });
 
+// Setup Conftest environment automatically
+const setupResult = await setupConftestEnvironment({
+  autoInstall: true,
+  platform: 'windows',
+});
 // Generate a conftest command
 const conftestCommand = await generateConftestWorkspaceValidationCommand_impl({
   workspaceFolder: './terraform',

@@ -17,6 +17,7 @@ import type {
   GetAvmDocumentationParamsType,
 } from '../core/types.js';
 import { getGitHubToken } from '../core/config.js';
+import { getCachePath, getCacheFilePath } from '../core/cache-manager.js';
 
 // ==========================================
 // Constants
@@ -24,7 +25,6 @@ import { getGitHubToken } from '../core/config.js';
 
 const AVAILABLE_MODULES_URL =
   'https://raw.githubusercontent.com/Azure/Azure-Verified-Modules/main/docs/static/module-indexes/TerraformResourceModules.csv';
-const LOCAL_DATA_BASE_PATH = '__avm_data_cache__';
 const AVAILABLE_MODULE_FILE = 'available_modules.csv';
 const CACHE_EXPIRATION_MS = 86400 * 1000; // 24 hours
 
@@ -60,8 +60,9 @@ interface VersionInfo {
 let cachedModules: Record<string, ModuleInfo> | null = null;
 
 function ensureCacheDir(): void {
-  if (!existsSync(LOCAL_DATA_BASE_PATH)) {
-    mkdirSync(LOCAL_DATA_BASE_PATH, { recursive: true });
+  const cacheDir = getCachePath('avm');
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
   }
 }
 
@@ -150,7 +151,7 @@ async function getModuleCollection(): Promise<Record<string, ModuleInfo>> {
   }
 
   ensureCacheDir();
-  const moduleFilePath = join(LOCAL_DATA_BASE_PATH, AVAILABLE_MODULE_FILE);
+  const moduleFilePath = getCacheFilePath('avm', AVAILABLE_MODULE_FILE);
 
   let csvContent: string;
 
@@ -349,7 +350,7 @@ async function getVersionPath(moduleName: string, version: string): Promise<stri
     );
   }
 
-  const versionPath = join(LOCAL_DATA_BASE_PATH, moduleName, cleanVersion);
+  const versionPath = getCacheFilePath('avm', join(moduleName, cleanVersion));
 
   if (!existsSync(versionPath)) {
     await downloadModuleVersion(versionInfo.tarballUrl, versionPath);

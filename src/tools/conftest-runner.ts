@@ -16,6 +16,7 @@ import {
   resolveWorkspacePath,
   getConftestInstallationHelp,
 } from '../core/utils.js';
+import { checkConftestInstallationWithSetup, setupConftestEnvironment } from './conftest-setup.js';
 
 // ==========================================
 // Public API Functions
@@ -23,11 +24,38 @@ import {
 
 /**
  * Check if Conftest is installed and get version information.
+ *
+ * If autoSetup is true, will attempt automatic installation with user confirmation.
+ * Otherwise, just checks current installation status.
  */
 export async function checkConftestInstallation(
-  _params: CheckConftestInstallationParamsType
+  params: CheckConftestInstallationParamsType
 ): Promise<ConftestInstallationResult> {
+  const { autoSetup = false, workspacePath } = params;
+
   try {
+    // Use new setup flow if auto-setup is requested
+    if (autoSetup) {
+      const setupResult = await checkConftestInstallationWithSetup(workspacePath, true);
+
+      // Convert SetupEnvironmentResult to ConftestInstallationResult
+      if (setupResult.conftestInstalled) {
+        return {
+          installed: true,
+          version: setupResult.conftestVersion ?? 'Unknown',
+          executablePath: 'conftest',
+          status: setupResult.message,
+        };
+      } else {
+        return {
+          installed: false,
+          status: setupResult.message,
+          error: 'Auto-installation failed or was not attempted',
+        };
+      }
+    }
+
+    // Simple check-only mode (original behavior)
     const installed = await isCommandAvailable('conftest');
 
     if (!installed) {
@@ -264,4 +292,9 @@ export async function generateConftestWorkspacePlanValidationCommand_impl(
 ): Promise<ConftestCommandResult> {
   return generateConftestWorkspacePlanValidationCommand(params);
 }
+
+/**
+ * Re-export setupConftestEnvironment from conftest-setup for MCP tool handlers.
+ */
+export { setupConftestEnvironment };
 

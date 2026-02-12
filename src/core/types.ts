@@ -187,6 +187,79 @@ export interface ConftestInstallationResult {
   installationHelp?: InstallationHelp;
 }
 
+/**
+ * Platform type for installation/execution.
+ */
+export type Platform = 'windows' | 'macos' | 'linux';
+
+/**
+ * Package manager detection result.
+ */
+export interface PackageManager {
+  name: 'brew' | 'apt' | 'dnf' | 'scoop' | 'choco' | 'manual';
+  available: boolean;
+  command?: string;
+  requiresElevation: boolean;
+}
+
+/**
+ * Result of a single installation step.
+ */
+export interface InstallationStepResult {
+  step: 'detect' | 'install' | 'verify';
+  success: boolean;
+  message: string;
+  details?: Record<string, string>;
+  requiresRestart?: boolean;
+  error?: string;
+}
+
+/**
+ * Policy library status.
+ */
+export interface PolicyLibraryStatus {
+  available: boolean;
+  path?: string;
+  policySets: string[];
+  lastUpdated?: Date;
+  size?: number;
+  updateAvailable?: boolean;
+  gitRemote?: string;
+}
+
+/**
+ * Comprehensive setup environment result combining installation and policy status.
+ */
+export interface SetupEnvironmentResult {
+  success: boolean;
+  message: string;
+
+  // Installation status
+  conftestInstalled: boolean;
+  conftestVersion?: string;
+  conftestPath?: string;
+  installationSteps?: InstallationStepResult[];
+
+  // Policy status
+  policiesAvailable: boolean;
+  policyStatus?: PolicyLibraryStatus;
+
+  // Actions taken
+  actionsTaken: ('conftest-install' | 'policy-clone' | 'policy-update')[];
+
+  // Requirements
+  requiresRestart: boolean;
+  restartInstructions?: string;
+
+  // Readiness
+  readyToValidate: boolean;
+  nextSteps?: string[];
+
+  // Timing
+  executedAt: Date;
+  duration?: number; // in milliseconds
+}
+
 export interface PolicyViolation {
   filename: string;
   level: 'failure' | 'warning';
@@ -309,7 +382,16 @@ export const ExportAzureResourcesByQueryParams = z.object({
   continueOnError: z.boolean().default(true).describe('Continue export even if some resources fail'),
 });
 
-export const CheckConftestInstallationParams = z.object({});
+export const CheckConftestInstallationParams = z.object({
+  workspacePath: z.string().optional().describe('Path to workspace for policy download'),
+  autoSetup: z.boolean().default(false).describe('Enable automatic setup with user confirmation'),
+});
+
+export const SetupConftestEnvironmentParams = z.object({
+  workspacePath: z.string().optional().describe('Path to workspace for policy download (defaults to current directory)'),
+  confirmInstall: z.boolean().default(false).describe('User confirmed they want to proceed with installation'),
+  skipPolicies: z.boolean().default(false).describe('Skip policy library setup'),
+});
 
 export const RunConftestWorkspaceValidationParams = z.object({
   workspaceFolder: z.string().describe('Path to the workspace folder to validate'),
@@ -336,5 +418,7 @@ export type ExportAzureResourceParamsType = z.infer<typeof ExportAzureResourcePa
 export type ExportAzureResourceGroupParamsType = z.infer<typeof ExportAzureResourceGroupParams>;
 export type ExportAzureResourcesByQueryParamsType = z.infer<typeof ExportAzureResourcesByQueryParams>;
 export type CheckConftestInstallationParamsType = z.infer<typeof CheckConftestInstallationParams>;
+export type SetupConftestEnvironmentParamsType = z.infer<typeof SetupConftestEnvironmentParams>;
 export type RunConftestWorkspaceValidationParamsType = z.infer<typeof RunConftestWorkspaceValidationParams>;
 export type RunConftestWorkspacePlanValidationParamsType = z.infer<typeof RunConftestWorkspacePlanValidationParams>;
+

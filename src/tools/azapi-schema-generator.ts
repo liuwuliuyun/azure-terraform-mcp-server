@@ -20,7 +20,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir, homedir } from 'node:os';
+import { getCachePath } from '../core/cache-manager.js';
 import { createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { createGunzip } from 'node:zlib';
@@ -87,7 +87,7 @@ class GitHubLoader {
     this.owner = owner;
     this.repo = repo;
     this.tag = tag;
-    this.downloadDir = join(tmpdir(), 'azapi_downloads');
+    this.downloadDir = getCachePath('temp');
 
     if (!existsSync(this.downloadDir)) {
       mkdirSync(this.downloadDir, { recursive: true });
@@ -769,20 +769,9 @@ export class AzAPISchemaGenerator {
     this.dataDir = this.getCacheDir();
   }
 
-  private getCacheDir(): string {
-    // Prefer workspace root (mounted volume) for persistence across container restarts
-    const workspaceRoot = process.env['MCP_WORKSPACE_ROOT'];
-    if (workspaceRoot && existsSync(workspaceRoot)) {
-      const cacheDir = join(workspaceRoot, '.tf_mcp_server', 'azapi_cache');
-      mkdirSync(cacheDir, { recursive: true });
-      return cacheDir;
-    }
-
-    // Fallback to home directory for local development
-    const homeCache = join(homedir(), '.tf_mcp_server', 'azapi_cache');
-    mkdirSync(homeCache, { recursive: true });
-    return homeCache;
-  }
+   private getCacheDir(): string {
+     return getCachePath('azapi');
+   }
 
   private getSchemaFile(version: string): string {
     return join(this.dataDir, `azapi_schemas_${version}.json`);

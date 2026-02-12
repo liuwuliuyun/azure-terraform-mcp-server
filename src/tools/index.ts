@@ -39,3 +39,24 @@ export {
   generateConftestWorkspaceValidationCommand_impl,
   generateConftestWorkspacePlanValidationCommand_impl,
 } from './conftest-runner.js';
+
+export {
+  installConftest,
+  checkConftestInstalled,
+  getConftestVersion,
+  detectPlatform,
+  detectPackageManagers,
+} from './conftest-auto-installer.js';
+
+export {
+  clonePolicyLibrary,
+  updatePolicyLibrary,
+  verifyPolicyDirectory,
+  getPolicyStatus,
+  getPolicyPath,
+} from './policy-manager.js';
+
+export {
+  setupConftestEnvironment,
+  checkConftestInstallationWithSetup,
+} from './conftest-setup.js';

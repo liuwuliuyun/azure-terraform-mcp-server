@@ -19,6 +19,7 @@ import {
   CheckConftestInstallationParams,
   RunConftestWorkspaceValidationParams,
   RunConftestWorkspacePlanValidationParams,
+  SetupConftestEnvironmentParams,
 } from './core/types.js';
 import { getErrorMessage } from './core/errors.js';
 
@@ -48,6 +49,7 @@ import {
   checkConftestInstallation,
   generateConftestWorkspaceValidationCommand_impl,
   generateConftestWorkspacePlanValidationCommand_impl,
+  setupConftestEnvironment,
 } from './tools/conftest-runner.js';
 
 /**
@@ -221,14 +223,21 @@ export function createServer(): McpServer {
     createHandler(generateConftestWorkspaceValidationCommand_impl)
   );
 
-  server.tool(
-    'generate_conftest_workspace_plan_validation_command',
-    'Generate a conftest command to validate Terraform plan files against Azure security policies. The command is returned for the agent to execute locally.',
-    RunConftestWorkspacePlanValidationParams.shape,
-    createHandler(generateConftestWorkspacePlanValidationCommand_impl)
-  );
+   server.tool(
+     'generate_conftest_workspace_plan_validation_command',
+     'Generate a conftest command to validate Terraform plan files against Azure security policies. The command is returned for the agent to execute locally.',
+     RunConftestWorkspacePlanValidationParams.shape,
+     createHandler(generateConftestWorkspacePlanValidationCommand_impl)
+   );
 
-  return server;
+   server.tool(
+     'setup_conftest_environment',
+     'Automatically setup Conftest environment: checks installation, installs if needed, downloads policies, and validates everything is working.',
+     SetupConftestEnvironmentParams.shape,
+     createHandler(setupConftestEnvironment)
+   );
+
+   return server;
 }
 
 export { SERVER_VERSION };
