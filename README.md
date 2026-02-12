@@ -40,7 +40,7 @@ npm install -g @azure/terraform-mcp-server
 ### Install from source
 
 ```bash
-git clone https://github.com/Azure/azure-terraform-mcp-server.git
+git clone https://github.com/liuwuliuyun/azure-terraform-mcp-server.git
 cd azure-terraform-mcp-server
 npm install
 npm run build
