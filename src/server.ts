@@ -22,6 +22,7 @@ import {
   SetupConftestEnvironmentParams,
 } from './core/types.js';
 import { getErrorMessage } from './core/errors.js';
+import { trackToolCall } from './core/telemetry.js';
 
 import {
   getAzureRMProviderDocumentation,
@@ -100,18 +101,29 @@ function errorResult(error: unknown): ToolResult {
 }
 
 /**
- * Create a tool handler with error handling.
+ * Create a tool handler with error handling and telemetry tracking.
  */
 function createHandler<TParams, TResult>(
+  toolName: string,
   handler: (params: TParams) => Promise<TResult>,
   formatResult: (result: TResult) => ToolResult = successResult
 ): (params: TParams) => Promise<ToolResult> {
   return async (params: TParams) => {
+    const startTime = performance.now();
+    let success = false;
+    let errorType: string | undefined;
+
     try {
       const result = await handler(params);
+      success = true;
       return formatResult(result);
     } catch (error) {
+      errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
       return errorResult(error);
+    } finally {
+      // Track tool execution
+      const duration = performance.now() - startTime;
+      trackToolCall(toolName, duration, success, errorType);
     }
   };
 }
@@ -135,42 +147,42 @@ export function createServer(): McpServer {
     'list_avm_modules',
     'Retrieves all available Azure verified modules. Returns a list of modules with module_name, description, and source fields.',
     ListAvmModulesParams.shape,
-    createHandler(listAvmModules)
+    createHandler('list_avm_modules', listAvmModules)
   );
 
   server.tool(
     'get_avm_latest_version',
     'Retrieves the latest version of a specified Azure verified module.',
     GetAvmLatestVersionParams.shape,
-    createHandler(getAvmLatestVersion)
+    createHandler('get_avm_latest_version', getAvmLatestVersion)
   );
 
   server.tool(
     'get_avm_versions',
     'Retrieves all available versions of a specified Azure verified module.',
     GetAvmVersionsParams.shape,
-    createHandler(getAvmVersions)
+    createHandler('get_avm_versions', getAvmVersions)
   );
 
   server.tool(
     'get_avm_documentation',
     'Retrieves the documentation (README.md) for a specific Azure verified module version.',
     GetAvmDocumentationParams.shape,
-    createHandler(getAvmDocumentation, textResult)
+    createHandler('get_avm_documentation', getAvmDocumentation, textResult)
   );
 
   server.tool(
     'get_azurerm_provider_documentation',
     'Retrieve documentation for a specific AzureRM resource type in Terraform. Supports optional argument/attribute lookup.',
     GetAzureRMDocumentationParams.shape,
-    createHandler(getAzureRMProviderDocumentation)
+    createHandler('get_azurerm_provider_documentation', getAzureRMProviderDocumentation)
   );
 
   server.tool(
     'get_azapi_provider_documentation',
     'Retrieve documentation for a specific AzAPI resource type in Terraform. Use Azure REST API format (e.g., Microsoft.Storage/storageAccounts).',
     GetAzAPIDocumentationParams.shape,
-    createHandler(getAzAPIProviderDocumentation)
+    createHandler('get_azapi_provider_documentation', getAzAPIProviderDocumentation)
   );
 
   // ==========================================
@@ -181,28 +193,28 @@ export function createServer(): McpServer {
     'check_aztfexport_installation',
     'Check if Azure Export for Terraform (aztfexport) is installed and get version information.',
     CheckAztfexportInstallationParams.shape,
-    createHandler(checkAztfexportInstallation)
+    createHandler('check_aztfexport_installation', checkAztfexportInstallation)
   );
 
   server.tool(
     'generate_aztfexport_resource_command',
     'Generate an aztfexport command to export a single Azure resource to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourceParams.shape,
-    createHandler(generateExportAzureResourceCommand_impl)
+    createHandler('generate_aztfexport_resource_command', generateExportAzureResourceCommand_impl)
   );
 
   server.tool(
     'generate_aztfexport_resource_group_command',
     'Generate an aztfexport command to export an Azure resource group and all its resources to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourceGroupParams.shape,
-    createHandler(generateExportAzureResourceGroupCommand_impl)
+    createHandler('generate_aztfexport_resource_group_command', generateExportAzureResourceGroupCommand_impl)
   );
 
   server.tool(
     'generate_aztfexport_resources_by_query_command',
     'Generate an aztfexport command to export Azure resources matching an Azure Resource Graph query to Terraform configuration. The command is returned for the agent to execute locally.',
     ExportAzureResourcesByQueryParams.shape,
-    createHandler(generateExportAzureResourcesByQueryCommand_impl)
+    createHandler('generate_aztfexport_resources_by_query_command', generateExportAzureResourcesByQueryCommand_impl)
   );
 
   // ==========================================
@@ -213,28 +225,28 @@ export function createServer(): McpServer {
     'check_conftest_installation',
     'Check if Conftest is installed and get version information.',
     CheckConftestInstallationParams.shape,
-    createHandler(checkConftestInstallation)
+    createHandler('check_conftest_installation', checkConftestInstallation)
   );
 
   server.tool(
     'generate_conftest_workspace_validation_command',
     'Generate a conftest command to validate Terraform files in a workspace folder against Azure security policies. The command is returned for the agent to execute locally.',
     RunConftestWorkspaceValidationParams.shape,
-    createHandler(generateConftestWorkspaceValidationCommand_impl)
+    createHandler('generate_conftest_workspace_validation_command', generateConftestWorkspaceValidationCommand_impl)
   );
 
    server.tool(
      'generate_conftest_workspace_plan_validation_command',
      'Generate a conftest command to validate Terraform plan files against Azure security policies. The command is returned for the agent to execute locally.',
      RunConftestWorkspacePlanValidationParams.shape,
-     createHandler(generateConftestWorkspacePlanValidationCommand_impl)
+     createHandler('generate_conftest_workspace_plan_validation_command', generateConftestWorkspacePlanValidationCommand_impl)
    );
 
    server.tool(
      'setup_conftest_environment',
      'Automatically setup Conftest environment: checks installation, installs if needed, downloads policies, and validates everything is working.',
      SetupConftestEnvironmentParams.shape,
-     createHandler(setupConftestEnvironment)
+     createHandler('setup_conftest_environment', setupConftestEnvironment)
    );
 
    return server;

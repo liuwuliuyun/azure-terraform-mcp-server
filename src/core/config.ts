@@ -23,6 +23,10 @@ export interface TelemetryConfig {
   sampleRate: number;
   /** Unique user identifier for telemetry */
   userId: string;
+  /** Whether to flush on shutdown */
+  flushOnShutdown: boolean;
+  /** Export interval in milliseconds */
+  exportIntervalMs: number;
 }
 
 /**
@@ -78,15 +82,7 @@ interface TelemetryConfigFile {
 }
 
 function loadOrGenerateUserId(): string {
-  // Prefer workspace root (mounted volume) for persistence across container restarts
-  const workspaceRoot = process.env['MCP_WORKSPACE_ROOT'];
-  let configFilePath: string;
-
-  if (workspaceRoot && existsSync(workspaceRoot)) {
-    configFilePath = join(workspaceRoot, '.tf_mcp_server', '.telemetry_config.json');
-  } else {
-    configFilePath = join(homedir(), '.tf_mcp_server', '.telemetry_config.json');
-  }
+  const configFilePath = join(homedir(), '.tf_mcp_server', '.telemetry_config.json');
 
   // Try to load existing config
   if (existsSync(configFilePath)) {
@@ -142,12 +138,18 @@ function createTelemetryConfig(): TelemetryConfig {
   const connectionString = process.env['APPLICATIONINSIGHTS_CONNECTION_STRING'] ?? defaultConnectionString;
   const sampleRate = parseFloat(process.env['TELEMETRY_SAMPLE_RATE'] ?? '1.0');
   const userId = loadOrGenerateUserId();
+  const flushOnShutdown = ['true', '1', 'yes'].includes(
+    (process.env['TELEMETRY_FLUSH_ON_SHUTDOWN'] ?? 'true').toLowerCase()
+  );
+  const exportIntervalMs = parseInt(process.env['TELEMETRY_EXPORT_INTERVAL_MS'] ?? '300000', 10);
 
   return {
     enabled,
     connectionString,
     sampleRate,
     userId,
+    flushOnShutdown,
+    exportIntervalMs,
   };
 }
 
@@ -241,6 +243,8 @@ export function loadConfigFromFile(filePath: string): Config {
       connectionString: data.telemetry?.connectionString ?? '',
       sampleRate: data.telemetry?.sampleRate ?? 1.0,
       userId: data.telemetry?.userId ?? loadOrGenerateUserId(),
+      flushOnShutdown: data.telemetry?.flushOnShutdown ?? true,
+      exportIntervalMs: data.telemetry?.exportIntervalMs ?? 300000,
     },
   };
 }

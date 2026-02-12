@@ -21,6 +21,13 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 - **Automated Conftest Setup** - Platform-aware auto-installation of Conftest with intelligent package manager fallbacks (brew, apt, scoop, choco, etc.)
 - **Policy Library Management** - Automatic cloning and updating of Azure policy libraries from GitHub
 
+### Telemetry & Monitoring
+- **Azure Application Insights Integration** - Built-in telemetry collection for tool usage, performance metrics, and error tracking
+- **Monthly Active Users (MAU) Tracking** - Unique user identification and persistence across sessions
+- **Tool Execution Metrics** - Automatic tracking of tool call counts, execution duration, and error rates
+- **Configurable Sampling** - Control telemetry volume and costs with sampling rates
+- **See [Telemetry Setup Guide](docs/TELEMETRY.md) for details**
+
 ## Installation
 
 ### Prerequisites
@@ -60,8 +67,13 @@ npm run build
 | `ARM_CLIENT_ID` | Azure client/application ID | No* |
 | `ARM_CLIENT_SECRET` | Azure client secret | No* |
 | `TELEMETRY_ENABLED` | Enable/disable telemetry (`true`/`false`, default: `true`) | No |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights connection string for telemetry | No |
+| `TELEMETRY_SAMPLE_RATE` | Telemetry sampling rate 0.0-1.0 (default: 1.0) | No |
+| `TELEMETRY_EXPORT_INTERVAL_MS` | Telemetry export interval in milliseconds (default: 60000) | No |
 
 *Required for aztfexport operations
+
+> **Telemetry**: By default, the server collects anonymous usage metrics (tool execution counts, duration, errors) and sends them to Azure Application Insights if a connection string is provided. No personal data is collected. See [Telemetry Setup Guide](docs/TELEMETRY.md) for configuration and privacy details.
 
 ### MCP Client Configuration
 

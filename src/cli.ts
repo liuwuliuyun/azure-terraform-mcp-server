@@ -8,11 +8,20 @@
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createServer } from './server.js';
+import { getConfig } from './core/config.js';
+import { initTelemetry, shutdownTelemetry, trackUserActivity } from './core/telemetry.js';
 
 /**
  * Main entry point
  */
 async function main(): Promise<void> {
+  // Initialize telemetry first
+  const config = getConfig();
+  await initTelemetry(config.telemetry);
+
+  // Track server startup
+  trackUserActivity();
+
   const server = createServer();
   const transport = new StdioServerTransport();
 
@@ -23,6 +32,10 @@ async function main(): Promise<void> {
     } catch {
       // Ignore errors during shutdown
     }
+
+    // Shutdown telemetry
+    await shutdownTelemetry();
+
     process.exit(0);
   };
 
@@ -34,8 +47,10 @@ async function main(): Promise<void> {
     await server.connect(transport);
   } catch (error) {
     console.error('Failed to start server:', error);
+    await shutdownTelemetry();
     process.exit(1);
   }
 }
 
 main();
+
