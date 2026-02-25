@@ -6,7 +6,8 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 
 ### Documentation Tools
 - **AzureRM Provider Documentation** - Retrieve comprehensive documentation for any AzureRM resource type, including arguments, attributes, and examples
-- **AzAPI Provider Documentation** - Access Azure REST API documentation for AzAPI resources with schema information
+- **AzAPI Provider Documentation** - Access Azure REST API documentation for AzAPI resources with auto-generated HCL schemas from Bicep type definitions
+- **AzAPI Examples** - Fetch Terraform examples for AzAPI resources from the Azure template-reference-generator repository
 - **Azure Verified Modules (AVM)** - Browse, search, and retrieve details about Azure Verified Modules including versions, variables, and outputs
 
 ### Resource Export Tools
@@ -20,6 +21,10 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 - **Custom Policy Support** - Use your own OPA/Rego policies for validation
 - **Automated Conftest Setup** - Platform-aware auto-installation of Conftest with intelligent package manager fallbacks (brew, apt, scoop, choco, etc.)
 - **Policy Library Management** - Automatic cloning and updating of Azure policy libraries from GitHub
+
+### Caching
+- **Unified Cache Management** - Persistent cache at `~/.azure-terraform-mcp/` for AzAPI schemas, AVM data, conftest policies, and temporary files
+- **Automatic Expiry** - Cached data expires based on configurable TTL (e.g., 5 days for AzAPI schemas, 7 days for temp files)
 
 ### Telemetry & Monitoring
 - **Azure Application Insights Integration** - Built-in telemetry collection for tool usage, performance metrics, and error tracking
@@ -69,7 +74,8 @@ npm run build
 | `TELEMETRY_ENABLED` | Enable/disable telemetry (`true`/`false`, default: `true`) | No |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights connection string for telemetry | No |
 | `TELEMETRY_SAMPLE_RATE` | Telemetry sampling rate 0.0-1.0 (default: 1.0) | No |
-| `TELEMETRY_EXPORT_INTERVAL_MS` | Telemetry export interval in milliseconds (default: 60000) | No |
+| `TELEMETRY_FLUSH_ON_SHUTDOWN` | Flush telemetry on graceful shutdown (`true`/`false`, default: `true`) | No |
+| `TELEMETRY_EXPORT_INTERVAL_MS` | Telemetry export interval in milliseconds (default: 300000) | No |
 
 *Required for aztfexport operations
 
@@ -244,7 +250,7 @@ Generate an aztfexport command to export a single Azure resource to Terraform co
 - `dryRun` (optional): Preview without creating files (default: `false`)
 - `includeRoleAssignment` (optional): Include role assignments (default: `false`)
 - `parallelism` (optional): Parallel operations (1-50, default: `10`)
-- `continueOnError` (optional): Continue on errors (default: `false`)
+- `continueOnError` (optional): Continue on errors (default: `true`)
 
 **Returns:** Command structure with executable command, arguments, and instructions for local execution
 
@@ -349,6 +355,7 @@ You can also use this package as a library in your own applications:
 import {
   createServer,
   getAzureRMProviderDocumentation,
+  getAzAPIProviderDocumentation,
   listAvmModules,
   generateExportAzureResourceCommand_impl,
   generateConftestWorkspaceValidationCommand_impl,
@@ -358,6 +365,11 @@ import {
 const docs = await getAzureRMProviderDocumentation({
   resourceTypeName: 'azurerm_storage_account',
   docType: 'resource',
+});
+
+// Get AzAPI documentation
+const azapiDocs = await getAzAPIProviderDocumentation({
+  resourceTypeName: 'Microsoft.Storage/storageAccounts',
 });
 
 // List AVM modules
@@ -449,23 +461,31 @@ npm run lint:fix
 npm run typecheck
 ```
 
+### Clean build artifacts
+
+```bash
+npm run clean
+```
+
 ## Architecture
 
 ```
 src/
-├── cli.ts              # CLI entry point
-├── server.ts           # MCP server setup and tool registration
+├── cli.ts              # CLI entry point with graceful shutdown
+├── server.ts           # MCP server setup and tool registration (14 tools)
 ├── index.ts            # Library exports
 ├── core/
 │   ├── cache-manager.ts # Unified cache management (~/.azure-terraform-mcp/)
-│   ├── config.ts       # Configuration management
-│   ├── errors.ts       # Custom error classes
-│   ├── types.ts        # TypeScript types and Zod schemas
-│   └── utils.ts        # Utility functions
+│   ├── config.ts       # Configuration management and environment variables
+│   ├── errors.ts       # Custom error classes (7 error types)
+│   ├── telemetry.ts    # Azure Monitor telemetry (metrics, MAU tracking)
+│   ├── types.ts        # TypeScript types and Zod schemas (14 param schemas)
+│   └── utils.ts        # Utility functions (command execution, path resolution)
 └── tools/
     ├── azurerm-docs-provider.ts     # AzureRM provider documentation
     ├── azapi-docs-provider.ts       # AzAPI provider documentation
-    ├── azapi-schema-generator.ts    # AzAPI schema generation utilities
+    ├── azapi-schema-generator.ts    # AzAPI schema generation from Bicep types
+    ├── azapi-examples-provider.ts   # AzAPI Terraform examples from GitHub
     ├── avm-docs-provider.ts         # Azure Verified Modules documentation
     ├── aztfexport-runner.ts         # Resource export command generation
     ├── conftest-runner.ts           # Policy validation command generation
@@ -478,6 +498,8 @@ src/
 ## Documentation
 
 - [Conftest Auto-Setup Guide](docs/conftest-setup.md) — Detailed API reference, usage examples, error handling, and troubleshooting for the automated Conftest installation and policy management system
+- [Telemetry Setup Guide](docs/TELEMETRY.md) — Telemetry configuration, metrics reference, Azure Monitor queries, and privacy details
+- [Bug Bash Guide](docs/bug-bash-guide.md) — Step-by-step guide for testing the server with example prompts and scenarios
 
 ## Contributing
 

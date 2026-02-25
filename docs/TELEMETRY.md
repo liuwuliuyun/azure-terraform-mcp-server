@@ -318,9 +318,9 @@ console.log(telemetry.isEnabled()); // Check if telemetry is active
 ### Best Practices
 
 1. **Use sampling in production** - Set `TELEMETRY_SAMPLE_RATE < 1.0` to reduce Azure costs
-2. **Configure export interval** - Default 60s is good for most scenarios
-   - Shorter intervals (10-30s) for real-time monitoring
-   - Longer intervals (120-300s) for high-volume scenarios to reduce network I/O
+2. **Configure export interval** - Default 5 minutes (300000ms) is good for most scenarios
+   - Shorter intervals (30-60s) for real-time monitoring
+   - Longer intervals (5-10 min) for high-volume scenarios to reduce network I/O
 3. **Monitor telemetry health** - Watch for export failures in logs
 4. **Graceful shutdown** - Server automatically flushes pending metrics on exit
 
@@ -362,7 +362,7 @@ cat ~/.tf_mcp_server/.telemetry_config.json
 
 **Solutions:**
 1. Enable sampling: `TELEMETRY_SAMPLE_RATE=0.1` (10% of traffic)
-2. Increase export interval: `TELEMETRY_EXPORT_INTERVAL_MS=300000` (5 minutes)
+2. Increase export interval: `TELEMETRY_EXPORT_INTERVAL_MS=600000` (10 minutes)
 3. Disable specific metric tracking if needed (requires code changes)
 
 ## Migration from Reference Implementation
