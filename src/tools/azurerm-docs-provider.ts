@@ -68,7 +68,7 @@ export async function getAzureRMProviderDocumentation(
         return {
           resourceType: resourceTypeName,
           documentationUrl: docUrl,
-          summary: `Documentation not found for ${resourceTypeName} (HTTP ${response.status})`,
+          summary: `Documentation not found for ${resourceTypeName} (HTTP ${response.status}). Please double-check the resource type name is correct. If this resource is not available in the AzureRM provider, consider using the AzAPI provider instead, which supports all Azure resource types.`,
           arguments: [],
           attributes: [],
           examples: [],
