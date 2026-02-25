@@ -15,6 +15,7 @@ import {
   ExportAzureResourceGroupParams,
   ExportAzureResourcesByQueryParams,
   CheckConftestInstallationParams,
+  SetupConftestEnvironmentParams,
   RunConftestWorkspaceValidationParams,
   RunConftestWorkspacePlanValidationParams,
 } from '../src/core/types.js';
@@ -296,6 +297,43 @@ describe('CheckConftestInstallationParams', () => {
   it('should validate empty object', () => {
     const result = CheckConftestInstallationParams.safeParse({});
     expect(result.success).toBe(true);
+  });
+});
+
+describe('SetupConftestEnvironmentParams', () => {
+  it('should validate empty object with defaults', () => {
+    const result = SetupConftestEnvironmentParams.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.confirmInstall).toBe(false);
+      expect(result.data.skipPolicies).toBe(false);
+    }
+  });
+
+  it('should validate with all fields', () => {
+    const result = SetupConftestEnvironmentParams.safeParse({
+      workspacePath: '/path/to/workspace',
+      confirmInstall: true,
+      skipPolicies: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.workspacePath).toBe('/path/to/workspace');
+      expect(result.data.confirmInstall).toBe(true);
+      expect(result.data.skipPolicies).toBe(true);
+    }
+  });
+
+  it('should accept optional workspacePath', () => {
+    const result = SetupConftestEnvironmentParams.safeParse({
+      confirmInstall: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.workspacePath).toBeUndefined();
+    }
   });
 });
 

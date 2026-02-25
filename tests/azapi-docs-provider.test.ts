@@ -16,7 +16,14 @@ vi.mock('../src/tools/azapi-schema-generator.js', () => ({
   clearAzAPISchemaCache: vi.fn(),
 }));
 
+// Mock the azapi-examples-provider module to prevent real fetch calls
+vi.mock('../src/tools/azapi-examples-provider.js', () => ({
+  getExamplesForResourceType: vi.fn().mockResolvedValue([]),
+  clearExamplesCache: vi.fn(),
+}));
+
 import { initializeAzAPISchemas, getAzAPISchema, clearAzAPISchemaCache } from '../src/tools/azapi-schema-generator.js';
+import { getExamplesForResourceType } from '../src/tools/azapi-examples-provider.js';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
