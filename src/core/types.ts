@@ -47,6 +47,40 @@ export interface AvmVersion {
 // AzAPI Types
 // ==========================================
 
+/**
+ * A Terraform sample from the template-reference-generator repository.
+ */
+export interface AzApiTerraformSample {
+  /** Azure resource type (e.g., Microsoft.Compute/virtualMachines) */
+  resourceType: string;
+  /** Relative path to the sample file in the remarks folder */
+  path: string;
+  /** Human-readable description of the sample */
+  description: string;
+}
+
+/**
+ * Index of samples from a remarks.json file for a provider namespace.
+ */
+export interface AzApiRemarksIndex {
+  /** Provider namespace (e.g., microsoft.compute) */
+  namespace: string;
+  /** Terraform samples available for this namespace */
+  terraformSamples: AzApiTerraformSample[];
+}
+
+/**
+ * A fetched example with its content.
+ */
+export interface AzApiExample {
+  /** Description of the example */
+  description: string;
+  /** The actual Terraform code content */
+  content: string;
+  /** Source path in the template-reference-generator repo */
+  sourcePath: string;
+}
+
 export interface AzApiDocumentationResult {
   resourceType: string;
   apiVersion: string;
@@ -55,6 +89,8 @@ export interface AzApiDocumentationResult {
   source: string;
   summary?: string;
   error?: string;
+  /** Terraform examples from the template-reference-generator repository */
+  examples?: AzApiExample[];
 }
 
 // ==========================================

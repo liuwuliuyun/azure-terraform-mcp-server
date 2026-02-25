@@ -13,6 +13,15 @@ export {
 } from './azapi-docs-provider.js';
 
 export {
+  getExamplesForResourceType,
+  listAvailableNamespaces,
+  fetchRemarksIndex,
+  listSamplesForNamespace,
+  searchExamples,
+  clearExamplesCache,
+} from './azapi-examples-provider.js';
+
+export {
   initializeAzAPISchemas,
   getAzAPISchema,
   getAzAPIParent,

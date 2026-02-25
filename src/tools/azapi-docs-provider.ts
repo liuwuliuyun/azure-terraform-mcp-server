@@ -11,7 +11,7 @@ import {
   getAzAPISchema,
   clearAzAPISchemaCache,
 } from './azapi-schema-generator.js';
-
+import { getExamplesForResourceType, clearExamplesCache } from './azapi-examples-provider.js';
 // ==========================================
 // Schema Loading (Lazy)
 // ==========================================
@@ -37,6 +37,7 @@ async function getSchemas(): Promise<Record<string, string>> {
 export function clearSchemaCache(): void {
   cachedSchemas = null;
   clearAzAPISchemaCache();
+  clearExamplesCache();
 }
 
 // ==========================================
@@ -59,6 +60,9 @@ export async function getAzAPIProviderDocumentation(
     const schemaDoc = searchAzAPISchema(resourceTypeName, schemas);
 
     if (schemaDoc) {
+      // Fetch examples for this resource type
+      const examples = await getExamplesForResourceType(resourceTypeName);
+
       return {
         resourceType: resourceTypeName,
         apiVersion: apiVersion ?? 'latest',
@@ -67,6 +71,7 @@ export async function getAzAPIProviderDocumentation(
         },
         source: 'azapi_provider_schemas',
         summary: `AzAPI resource schema for ${resourceTypeName}`,
+        examples: examples.length > 0 ? examples : undefined,
       };
     }
 
