@@ -126,8 +126,6 @@ export interface InstallationHelp {
   recommendedInstallCommand: string;
   /** Command the agent should run after installing to verify success */
   verifyCommand: string;
-  /** Install commands for all supported platforms */
-  allPlatformCommands: PlatformInstallCommand[];
   /** Official documentation / install guide URL */
   documentationUrl: string;
   /**

@@ -442,7 +442,6 @@ function resolveRecommendedCommand(commands: PlatformInstallCommand[]): string {
  * The returned object is designed for AI agent consumption via MCP:
  * - `recommendedInstallCommand` is pre-resolved to the server's OS
  * - `verifyCommand` tells the agent how to confirm installation
- * - `allPlatformCommands` provides full cross-platform instructions
  */
 function buildInstallationHelp(
   toolName: string,
@@ -457,7 +456,6 @@ function buildInstallationHelp(
     detectedPlatform: detectPlatformLabel(),
     recommendedInstallCommand: resolveRecommendedCommand(platformCommands),
     verifyCommand,
-    allPlatformCommands: platformCommands,
     documentationUrl,
     pathGuidance,
     additionalNotes,
