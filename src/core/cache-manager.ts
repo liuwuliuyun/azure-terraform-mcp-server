@@ -9,13 +9,14 @@
  *
  * Cache Structure:
  * ~/.azure-terraform-mcp/
- * ├── azapi-schemas/         # AzAPI resource schemas
- * ├── avm-data/              # AVM module metadata and documentation
- * ├── conftest-policies/     # Downloaded policy libraries
- * └── temp/                  # Temporary files (auto-cleaned)
+ * ├── .telemetry_config.json  # Persistent telemetry user ID (preserved on clear)
+ * ├── azapi-schemas/          # AzAPI resource schemas
+ * ├── avm-data/               # AVM module metadata and documentation
+ * ├── conftest-policies/      # Downloaded policy libraries
+ * └── temp/                   # Temporary files (auto-cleaned)
  */
 
-import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -157,19 +158,37 @@ export function clearCache(type: CacheType): boolean {
   }
 }
 
+/** Files in the cache root that should be preserved when clearing all caches. */
+const PRESERVED_ROOT_FILES = new Set(['.telemetry_config.json']);
+
 /**
  * Clear all caches.
+ * Preserves persistent root-level files (e.g. telemetry config).
  */
 export function clearAllCaches(): boolean {
   try {
     const rootPath = getCacheRootPath();
-    if (existsSync(rootPath)) {
-      rmSync(rootPath, { recursive: true, force: true });
-      mkdirSync(rootPath, { recursive: true });
-      cachedRootPath = rootPath;
-      return true;
+    if (!existsSync(rootPath)) {
+      return false;
     }
-    return false;
+
+    // Remove each cache subdirectory
+    for (const subdir of Object.values(CACHE_SUBDIRS)) {
+      const subdirPath = join(rootPath, subdir);
+      if (existsSync(subdirPath)) {
+        rmSync(subdirPath, { recursive: true, force: true });
+      }
+    }
+
+    // Remove any other entries that are not in the preserved set
+    for (const entry of readdirSync(rootPath)) {
+      if (!PRESERVED_ROOT_FILES.has(entry) && !Object.values(CACHE_SUBDIRS).includes(entry as any)) {
+        const entryPath = join(rootPath, entry);
+        rmSync(entryPath, { recursive: true, force: true });
+      }
+    }
+
+    return true;
   } catch (error) {
     console.error('Failed to clear all caches:', error);
     return false;

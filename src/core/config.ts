@@ -3,7 +3,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 
@@ -82,7 +82,9 @@ interface TelemetryConfigFile {
 }
 
 function loadOrGenerateUserId(): string {
-  const configFilePath = join(homedir(), '.tf_mcp_server', '.telemetry_config.json');
+  // Store telemetry config in the shared cache root (~/.azure-terraform-mcp/)
+  const cacheRoot = join(homedir(), '.azure-terraform-mcp');
+  const configFilePath = join(cacheRoot, '.telemetry_config.json');
 
   // Try to load existing config
   if (existsSync(configFilePath)) {
@@ -102,8 +104,9 @@ function loadOrGenerateUserId(): string {
 
   // Try to save to file
   try {
-    const configDir = dirname(configFilePath);
-    mkdirSync(configDir, { recursive: true });
+    if (!existsSync(cacheRoot)) {
+      mkdirSync(cacheRoot, { recursive: true });
+    }
     
     const configData: TelemetryConfigFile = {
       user_id: userId,
