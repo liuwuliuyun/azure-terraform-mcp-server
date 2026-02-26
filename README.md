@@ -46,7 +46,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 ### Install from npm
 
 ```bash
-npm install -g @azure/terraform-mcp-server
+npm install -g azure-terraform-mcp-server
 ```
 
 ### Install from source
@@ -359,7 +359,7 @@ import {
   listAvmModules,
   generateExportAzureResourceCommand_impl,
   generateConftestWorkspaceValidationCommand_impl,
-} from '@azure/terraform-mcp-server';
+} from 'azure-terraform-mcp-server';
 
 // Get documentation programmatically
 const docs = await getAzureRMProviderDocumentation({
@@ -399,7 +399,7 @@ import {
   detectPlatform,
   clonePolicyLibrary,
   getPolicyStatus,
-} from '@azure/terraform-mcp-server/tools';
+} from 'azure-terraform-mcp-server/tools';
 
 // Full automated setup (install conftest + download policies)
 const result = await setupConftestEnvironment({

@@ -1,5 +1,5 @@
 {
-  "name": "@azure/terraform-mcp-server",
+  "name": "azure-terraform-mcp-server",
   "version": "1.0.0",
   "description": "Azure Terraform MCP Server - Model Context Protocol server for Azure Terraform operations",
   "type": "module",

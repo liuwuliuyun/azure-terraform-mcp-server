@@ -7,7 +7,7 @@
  *
  * Usage:
  * ```ts
- * import { createInProcessClient } from '@azure/terraform-mcp-server/client';
+ * import { createInProcessClient } from 'azure-terraform-mcp-server/client';
  *
  * const client = await createInProcessClient();
  * const tools  = await client.listTools();
