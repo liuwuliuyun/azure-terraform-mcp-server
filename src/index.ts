@@ -8,6 +8,10 @@
 // Server exports
 export { createServer, SERVER_VERSION } from './server.js';
 
+// In-process client factory
+export { createInProcessClient } from './client.js';
+export type { InProcessClientOptions, InProcessClient } from './client.js';
+
 // Tool exports
 export {
   getAzureRMProviderDocumentation,
