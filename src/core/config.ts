@@ -138,7 +138,7 @@ function createTelemetryConfig(): TelemetryConfig {
     `LiveEndpoint=${aiLiveEndpoint};` +
     `ApplicationId=${appId}`;
 
-  const connectionString = process.env['APPLICATIONINSIGHTS_CONNECTION_STRING'] ?? defaultConnectionString;
+  const connectionString = process.env['TFMCP_AI_CON_STR'] ?? defaultConnectionString;
   const sampleRate = parseFloat(process.env['TELEMETRY_SAMPLE_RATE'] ?? '1.0');
   const userId = loadOrGenerateUserId();
   const flushOnShutdown = ['true', '1', 'yes'].includes(

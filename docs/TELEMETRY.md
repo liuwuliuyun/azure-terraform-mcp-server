@@ -53,7 +53,7 @@ Configure telemetry using these environment variables:
 TELEMETRY_ENABLED=true
 
 # Azure Application Insights connection string (REQUIRED for telemetry)
-APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=https://...
+TFMCP_AI_CON_STR=InstrumentationKey=...;IngestionEndpoint=https://...
 
 # Sampling rate: 0.0-1.0 (default: 1.0 = 100%)
 # Use sampling to reduce costs in production
@@ -330,7 +330,7 @@ console.log(telemetry.isEnabled()); // Check if telemetry is active
 
 **Check 1: Verify connection string**
 ```bash
-echo $APPLICATIONINSIGHTS_CONNECTION_STRING
+echo $TFMCP_AI_CON_STR
 # Should output: InstrumentationKey=...;IngestionEndpoint=...
 ```
 

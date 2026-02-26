@@ -72,7 +72,7 @@ npm run build
 | `ARM_CLIENT_ID` | Azure client/application ID | No* |
 | `ARM_CLIENT_SECRET` | Azure client secret | No* |
 | `TELEMETRY_ENABLED` | Enable/disable telemetry (`true`/`false`, default: `true`) | No |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights connection string for telemetry | No |
+| `TFMCP_AI_CON_STR` | Azure Application Insights connection string for telemetry | No |
 | `TELEMETRY_SAMPLE_RATE` | Telemetry sampling rate 0.0-1.0 (default: 1.0) | No |
 | `TELEMETRY_FLUSH_ON_SHUTDOWN` | Flush telemetry on graceful shutdown (`true`/`false`, default: `true`) | No |
 | `TELEMETRY_EXPORT_INTERVAL_MS` | Telemetry export interval in milliseconds (default: 300000) | No |
