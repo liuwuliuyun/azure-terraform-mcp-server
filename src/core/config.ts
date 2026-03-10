@@ -144,7 +144,7 @@ function createTelemetryConfig(): TelemetryConfig {
   const flushOnShutdown = ['true', '1', 'yes'].includes(
     (process.env['TELEMETRY_FLUSH_ON_SHUTDOWN'] ?? 'true').toLowerCase()
   );
-  const exportIntervalMs = parseInt(process.env['TELEMETRY_EXPORT_INTERVAL_MS'] ?? '300000', 10);
+  const exportIntervalMs = parseInt(process.env['TELEMETRY_EXPORT_INTERVAL_MS'] ?? '60000', 10);
 
   return {
     enabled,

@@ -308,7 +308,7 @@ function buildStatusMessage(
  */
 function log(verbose: boolean, message: string): void {
   if (verbose) {
-    console.log(`[conftest-setup] ${message}`);
+    console.error(`[conftest-setup] ${message}`);
   }
 }
 

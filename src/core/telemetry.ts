@@ -14,27 +14,72 @@
 import { performance } from 'node:perf_hooks';
 import type { TelemetryConfig } from './config.js';
 
-/**
- * In-memory metrics collector before export
- */
-interface MetricData {
-  name: string;
-  value: number;
-  timestamp: number;
-  attributes: Record<string, string>;
+// ==========================================
+// Logging helpers
+// ==========================================
+
+/** Whether debug-level telemetry logging is enabled (set MCP_DEBUG=true). */
+function isDebug(): boolean {
+  return process.env['MCP_DEBUG'] === 'true' || process.env['MCP_DEBUG'] === '1';
+}
+
+const LOG_PREFIX = '[telemetry]';
+
+/** Always-on informational log (written to stderr so it doesn't pollute MCP stdio). */
+function logInfo(message: string): void {
+  console.error(`${LOG_PREFIX} ${message}`);
+}
+
+/** Debug log – only emitted when MCP_DEBUG is enabled. */
+function logDebug(message: string): void {
+  if (isDebug()) {
+    console.error(`${LOG_PREFIX} ${message}`);
+  }
+}
+
+/** Warning log – always emitted. */
+function logWarn(message: string): void {
+  console.error(`${LOG_PREFIX} ⚠ ${message}`);
+}
+
+/** Error log – always emitted, includes the error object. */
+function logError(message: string, error?: unknown): void {
+  if (error) {
+    console.error(`${LOG_PREFIX} ✗ ${message}`, error);
+  } else {
+    console.error(`${LOG_PREFIX} ✗ ${message}`);
+  }
+}
+
+// OpenTelemetry instrument type aliases (resolved at runtime via dynamic import)
+interface OTelCounter {
+  add(value: number, attributes?: Record<string, string>): void;
+}
+interface OTelHistogram {
+  record(value: number, attributes?: Record<string, string>): void;
 }
 
 /**
- * Telemetry manager for Azure Monitor integration
+ * Telemetry manager for Azure Monitor integration.
+ *
+ * Uses OpenTelemetry SDK with AzureMonitorMetricExporter to send
+ * metrics (counters / histograms) to Application Insights.
  */
 class TelemetryManager {
   private static instance: TelemetryManager;
   private initialized = false;
   private enabled = false;
   private config: TelemetryConfig | null = null;
-  private metrics: MetricData[] = [];
-  private exportTimer: NodeJS.Timeout | null = null;
   private userId: string = '';
+
+  // OpenTelemetry SDK handles
+  private meterProvider: { shutdown(): Promise<void>; forceFlush(): Promise<void> } | null = null;
+
+  // Instruments – populated during initialize()
+  private toolCallsCounter: OTelCounter | null = null;
+  private toolErrorsCounter: OTelCounter | null = null;
+  private toolDurationHistogram: OTelHistogram | null = null;
+  private userActivityCounter: OTelCounter | null = null;
 
   private constructor() {}
 
@@ -61,104 +106,87 @@ class TelemetryManager {
     this.userId = config.userId;
 
     if (!config.enabled) {
-      console.log('Telemetry is disabled');
+      logInfo('Telemetry is disabled by configuration (TELEMETRY_ENABLED)');
       return;
     }
 
     if (!config.connectionString) {
-      console.warn('Application Insights connection string not provided. Telemetry disabled.');
+      logWarn('Application Insights connection string not provided – telemetry disabled');
       return;
     }
 
+    logDebug(`Initializing with exportInterval=${config.exportIntervalMs}ms, sampleRate=${config.sampleRate}`);
+
     try {
-      // Initialize dynamic import of Azure Monitor exporter
-      const { AzureMonitorTraceExporter } = await import('@azure/monitor-opentelemetry-exporter');
-      
-      // Create exporter but don't auto-start - we'll use it when needed
-      // Future enhancement: integrate with Azure Monitor for actual metric export
-      try {
-        new AzureMonitorTraceExporter({
-          connectionString: config.connectionString,
-        });
-      } catch {
-        // Exporter initialization is optional for now
-      }
+      // Dynamic imports for OpenTelemetry packages
+      const [
+        { AzureMonitorMetricExporter },
+        { MeterProvider, PeriodicExportingMetricReader },
+        { resourceFromAttributes },
+      ] = await Promise.all([
+        import('@azure/monitor-opentelemetry-exporter'),
+        import('@opentelemetry/sdk-metrics'),
+        import('@opentelemetry/resources'),
+      ]);
+
+      // Create Azure Monitor metric exporter
+      const metricExporter = new AzureMonitorMetricExporter({
+        connectionString: config.connectionString,
+      });
+
+      // Periodic reader flushes metrics at the configured interval
+      const metricReader = new PeriodicExportingMetricReader({
+        exporter: metricExporter,
+        exportIntervalMillis: config.exportIntervalMs,
+      });
+
+      // Build MeterProvider with resource metadata
+      const resource = resourceFromAttributes({
+        'service.name': 'azure-terraform-mcp-server',
+        'service.version': '1.0.0',
+      });
+
+      const meterProvider = new MeterProvider({
+        resource,
+        readers: [metricReader],
+      });
+
+      this.meterProvider = meterProvider;
+
+      // Create instruments
+      const meter = meterProvider.getMeter('azure-terraform-mcp');
+
+      this.toolCallsCounter = meter.createCounter('tool_calls_total', {
+        description: 'Total number of tool calls',
+      });
+
+      this.toolErrorsCounter = meter.createCounter('tool_errors_total', {
+        description: 'Total number of tool call errors',
+      });
+
+      this.toolDurationHistogram = meter.createHistogram('tool_duration_ms', {
+        description: 'Tool call duration in milliseconds',
+        unit: 'ms',
+      });
+
+      this.userActivityCounter = meter.createCounter('user_activity', {
+        description: 'User activity events for MAU calculation',
+      });
 
       this.enabled = true;
 
-      // Start periodic export of metrics
-      this.startPeriodicExport(config.exportIntervalMs);
-
-      console.log(
-        `✓ Azure Monitor telemetry configured (user: ${config.userId.substring(0, 8)}...)`
+      logInfo(
+        `✓ Initialized – exporting to Application Insights every ${config.exportIntervalMs / 1000}s ` +
+        `(user: ${config.userId.substring(0, 8)}…)`
+      );
+      logDebug(
+        `Instruments created: tool_calls_total (counter), tool_errors_total (counter), ` +
+        `tool_duration_ms (histogram), user_activity (counter)`
       );
     } catch (error) {
-      console.error('Failed to initialize telemetry:', error);
+      logError('Failed to initialize telemetry', error);
       this.enabled = false;
     }
-  }
-
-  /**
-   * Start periodic export of metrics
-   */
-  private startPeriodicExport(intervalMs: number): void {
-    if (this.exportTimer) {
-      clearInterval(this.exportTimer);
-    }
-
-    this.exportTimer = setInterval(() => {
-      if (this.metrics.length > 0) {
-        this.exportMetrics();
-      }
-    }, intervalMs);
-
-    // Allow unref so the process can exit
-    if (this.exportTimer.unref) {
-      this.exportTimer.unref();
-    }
-  }
-
-  /**
-   * Export accumulated metrics
-   */
-  private exportMetrics(): void {
-    if (this.metrics.length === 0) {
-      return;
-    }
-
-    try {
-      const metricsToExport = [...this.metrics];
-      this.metrics = [];
-
-      // Batch export metrics (simplified - in production use proper OpenTelemetry SDK)
-      metricsToExport.forEach((metric) => {
-        // Log for debugging if needed
-        if (process.env['MCP_DEBUG']) {
-          console.debug(`📊 Exporting metric: ${metric.name}=${metric.value}`);
-        }
-      });
-
-      // In a real implementation, we would use the exporter to send metrics
-      // For now, metrics are buffered and would be sent via the SDK
-    } catch (error) {
-      console.error('Failed to export metrics:', error);
-    }
-  }
-
-  /**
-   * Record a metric
-   */
-  private recordMetric(
-    name: string,
-    value: number,
-    attributes: Record<string, string>
-  ): void {
-    this.metrics.push({
-      name,
-      value,
-      timestamp: Date.now(),
-      attributes,
-    });
   }
 
   /**
@@ -196,21 +224,20 @@ class TelemetryManager {
         });
       }
 
-      // Record metrics
-      this.recordMetric('tool_calls_total', 1, attrs);
-      this.recordMetric('tool_duration_ms', duration, attrs);
+      // Record metrics via OpenTelemetry instruments
+      this.toolCallsCounter?.add(1, attrs);
+      this.toolDurationHistogram?.record(duration, attrs);
 
       if (!success) {
-        this.recordMetric('tool_errors_total', 1, attrs);
+        this.toolErrorsCounter?.add(1, attrs);
       }
 
-      if (process.env['MCP_DEBUG']) {
-        console.debug(
-          `📊 Telemetry: ${toolName} - ${success ? '✓' : '✗'} ${duration.toFixed(2)}ms`
-        );
-      }
+      logInfo(
+        `📊 trackToolCall: ${toolName} ${success ? '✓' : '✗'} ${duration.toFixed(2)}ms` +
+        (errorType ? ` [${errorType}]` : '')
+      );
     } catch (error) {
-      console.error('Failed to track tool call:', error);
+      logError(`Failed to track tool call "${toolName}"`, error);
     }
   }
 
@@ -223,15 +250,13 @@ class TelemetryManager {
     }
 
     try {
-      const attrs: Record<string, string> = {
+      this.userActivityCounter?.add(1, {
         'user.id': this.userId,
         'event.type': 'activity',
-        'timestamp': new Date().toISOString(),
-      };
-
-      this.recordMetric('user_activity', 1, attrs);
+      });
+      logDebug(`📊 trackUserActivity: user=${this.userId.substring(0, 8)}…`);
     } catch (error) {
-      console.error('Failed to track user activity:', error);
+      logError('Failed to track user activity', error);
     }
   }
 
@@ -244,16 +269,34 @@ class TelemetryManager {
     }
 
     try {
-      // Clear export timer
-      if (this.exportTimer) {
-        clearInterval(this.exportTimer);
-        this.exportTimer = null;
+      // Flush and shut down the MeterProvider – this ensures all pending
+      // metrics are exported to Application Insights before the process exits.
+      if (this.meterProvider) {
+        logDebug('Flushing pending metrics before shutdown…');
+        await this.meterProvider.forceFlush();
+        logDebug('Shutting down MeterProvider…');
+        await this.meterProvider.shutdown();
+        this.meterProvider = null;
       }
 
-      console.log('✓ Telemetry shutdown complete');
+      this.enabled = false;
+      logInfo('✓ Telemetry shutdown complete – all pending metrics flushed');
     } catch (error) {
-      console.error('Error during telemetry shutdown:', error);
+      logError('Error during telemetry shutdown', error);
     }
+  }
+
+  /**
+   * Flush all pending metrics to Application Insights immediately.
+   */
+  async flush(): Promise<void> {
+    if (!this.enabled || !this.meterProvider) {
+      logDebug('flush() called but telemetry is not active – skipped');
+      return;
+    }
+    logDebug('Flushing pending metrics to Application Insights…');
+    await this.meterProvider.forceFlush();
+    logDebug('✓ Flush complete');
   }
 
   /**
@@ -301,6 +344,13 @@ export function trackToolCall(
  */
 export function trackUserActivity(): void {
   telemetryManager.trackUserActivity();
+}
+
+/**
+ * Flush all pending metrics without shutting down.
+ */
+export async function flushTelemetry(): Promise<void> {
+  await telemetryManager.flush();
 }
 
 /**

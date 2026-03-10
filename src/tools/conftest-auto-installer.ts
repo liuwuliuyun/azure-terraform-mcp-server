@@ -461,6 +461,6 @@ export async function getConftestVersion(): Promise<string | null> {
 
 function log(verbose: boolean, message: string): void {
   if (verbose) {
-    console.log(`[conftest-installer] ${message}`);
+    console.error(`[conftest-installer] ${message}`);
   }
 }
