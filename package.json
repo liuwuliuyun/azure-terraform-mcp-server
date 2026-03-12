@@ -1,7 +1,32 @@
 {
-  "name": "azure-terraform-mcp-server",
+  "name": "@azure/terraform-mcp-server",
   "version": "1.0.0",
   "description": "Azure Terraform MCP Server - Model Context Protocol server for Azure Terraform operations",
+  "keywords": [
+    "azure",
+    "terraform",
+    "mcp",
+    "model-context-protocol",
+    "infrastructure-as-code",
+    "azurerm",
+    "azapi",
+    "avm"
+  ],
+  "homepage": "https://github.com/Azure/azure-terraform-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/Azure/azure-terraform-mcp-server/issues"
+  },
+  "license": "MIT",
+  "author": "Azure Terraform Team <aztfai@microsoft.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Azure/azure-terraform-mcp-server.git"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -31,11 +56,6 @@
       "require": "./dist/tools/index.cjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -49,22 +69,7 @@
     "test:integration:watch": "vitest --config vitest.integration.config.ts",
     "test:all": "vitest run && vitest run --config vitest.integration.config.ts",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run build"
-  },
-  "keywords": [
-    "azure",
-    "terraform",
-    "mcp",
-    "model-context-protocol",
-    "infrastructure-as-code",
-    "azurerm",
-    "azapi",
-    "avm"
-  ],
-  "author": "",
-  "license": "MIT",
-  "engines": {
-    "node": ">=20.0.0"
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry-exporter": "^1.0.0-beta.32",
@@ -86,5 +91,12 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0",
     "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
   }
 }
