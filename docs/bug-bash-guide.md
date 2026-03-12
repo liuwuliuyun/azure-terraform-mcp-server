@@ -42,7 +42,7 @@ You have two options:
 
 ```powershell
 # 1. Clone the repository
-git clone https://github.com/liuwuliuyun/azure-terraform-mcp-server.git
+git clone https://github.com/Azure/azure-terraform-mcp-server.git
 
 # 2. Install dependencies, build, and register globally
 cd azure-terraform-mcp-server
@@ -57,7 +57,7 @@ This registers the `azure-terraform-mcp-server` command globally on your machine
 
 ```powershell
 # 1. Clone the repository
-git clone https://github.com/liuwuliuyun/azure-terraform-mcp-server.git
+git clone https://github.com/Azure/azure-terraform-mcp-server.git
 
 # 2. Install dependencies and build
 cd azure-terraform-mcp-server
