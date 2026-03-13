@@ -1,23 +1,22 @@
-# Stage template: Run unit tests on a given OS/pool
+# Stage template: Run unit tests on a given OS
 parameters:
     - name: name
       type: string
       default: 'UnitTests'
-    - name: poolName
+    - name: poolType
       type: string
-      default: 'pool-windows-2022'
-    - name: poolOs
-      type: string
-      default: 'windows'
+      default: 'linux'
+      values:
+          - linux
+          - windows
 
 stages:
     - stage: ${{ parameters.name }}
       dependsOn: []
-      pool:
-          name: ${{ parameters.poolName }}
-          os: ${{ parameters.poolOs }}
       jobs:
           - job: UnitTests
+            pool:
+                type: ${{ parameters.poolType }}
             strategy:
                 matrix:
                     Node20:

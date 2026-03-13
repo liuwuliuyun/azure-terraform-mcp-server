@@ -1,13 +1,10 @@
 jobs:
-    - job:
-      templateContext:
-          outputs:
-              - output: pipelineArtifact
-                path: $(Build.ArtifactStagingDirectory)/dropOutput
-                artifact: drop
-                sbomBuildDropPath: '$(Build.ArtifactStagingDirectory)/dropInput'
-                sbomPackageName: 'Azure Terraform MCP Server'
-                sbomBuildComponentPath: '$(Build.SourcesDirectory)/node_modules'
+    - job: Build
+      pool:
+          type: linux
+      variables:
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/out'
+          ob_git_checkout: true
       steps:
           - template: /azure-pipelines/templates/steps/setup-node.yml@self
             parameters:
@@ -32,6 +29,5 @@ jobs:
           - script: npm pack
             displayName: 'npm pack'
             workingDirectory: '$(Build.ArtifactStagingDirectory)/dropInput'
-          - script: mkdir dropOutput && mv dropInput/*.tgz dropOutput
-            displayName: 'Move package to dropOutput'
-            workingDirectory: '$(Build.ArtifactStagingDirectory)'
+          - script: mv $(Build.ArtifactStagingDirectory)/dropInput/*.tgz $(ob_outputDirectory)/
+            displayName: 'Move package to output directory'
