@@ -1,0 +1,52 @@
+parameters:
+    - name: NpmPublishTag
+      displayName: 'Tag'
+      type: string
+      default: 'latest'
+    - name: NpmPublishDryRun
+      displayName: 'Dry Run'
+      type: boolean
+      default: true
+
+trigger: none
+pr: none
+
+resources:
+    repositories:
+        - repository: 1es
+          type: git
+          name: 1ESPipelineTemplates/1ESPipelineTemplates
+          ref: refs/tags/release
+    pipelines:
+        - pipeline: officialBuild
+          project: internal
+          source: terraform-mcp-server.official
+          branch: main
+
+extends:
+    template: v1/1ES.Official.PipelineTemplate.yml@1es
+    parameters:
+        sdl:
+            sourceAnalysisPool:
+                name: pool-windows-2022
+                os: windows
+            codeql:
+                runSourceLanguagesInSourceAnalysis: true
+
+        stages:
+            - stage: Release
+              pool:
+                  name: pool-ubuntu-2404
+                  os: linux
+              jobs:
+                  - job: Release
+                    steps:
+                        - download: officialBuild
+                        - template: /azure-pipelines/templates/steps/setup-node.yml@self
+                          parameters:
+                              nodeVersion: '20.x'
+                        - template: /azure-pipelines/templates/steps/npm-publish.yml@self
+                          parameters:
+                              tgzPath: '$(Pipeline.Workspace)/officialBuild/drop'
+                              npmPublishTag: ${{ parameters.NpmPublishTag }}
+                              npmPublishDryRun: ${{ parameters.NpmPublishDryRun }}

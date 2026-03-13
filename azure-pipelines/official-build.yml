@@ -1,0 +1,41 @@
+trigger:
+    batch: true
+    branches:
+        include:
+            - main
+
+resources:
+    repositories:
+        - repository: 1es
+          type: git
+          name: 1ESPipelineTemplates/1ESPipelineTemplates
+          ref: refs/tags/release
+
+extends:
+    template: v1/1ES.Official.PipelineTemplate.yml@1es
+    parameters:
+        pool:
+            name: pool-windows-2022
+            os: windows
+
+        sdl:
+            codeql:
+                runSourceLanguagesInSourceAnalysis: true
+
+        stages:
+            - template: /azure-pipelines/templates/stages/test.yml@self
+              parameters:
+                  name: WindowsUnitTests
+                  poolName: pool-windows-2022
+                  poolOs: windows
+
+            - template: /azure-pipelines/templates/stages/test.yml@self
+              parameters:
+                  name: LinuxUnitTests
+                  poolName: pool-ubuntu-2404
+                  poolOs: linux
+
+            - stage: Build
+              dependsOn: []
+              jobs:
+                  - template: /azure-pipelines/templates/jobs/build.yml@self
