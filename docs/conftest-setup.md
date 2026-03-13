@@ -34,7 +34,7 @@ import {
   detectPlatform,
   clonePolicyLibrary,
   getPolicyStatus,
-} from 'azure-terraform-mcp-server/tools';
+} from '@azure/terraform-mcp-server/tools';
 
 const result = await setupConftestEnvironment({
   workspacePath: './terraform',
@@ -242,7 +242,7 @@ import {
   detectPlatform,
   clonePolicyLibrary,
   getPolicyStatus,
-} from 'azure-terraform-mcp-server/tools';
+} from '@azure/terraform-mcp-server/tools';
 
 // Platform detection
 const platform = detectPlatform(); // 'windows' | 'macos' | 'linux'
