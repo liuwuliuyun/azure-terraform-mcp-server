@@ -1,3 +1,11 @@
+#################################################################################
+#                               OneBranch Pipelines                             #
+# Documentation:  https://aka.ms/obpipelines                                    #
+# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
+# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
+#################################################################################
+
+# CI trigger: batch pushes to main
 trigger:
     batch: true
     branches:
@@ -15,17 +23,125 @@ extends:
     template: v2/OneBranch.Official.CrossPlat.yml@templates
     parameters:
         stages:
-            - template: /azure-pipelines/templates/stages/test.yml@self
-              parameters:
-                  name: WindowsUnitTests
-                  poolType: windows
+            #------------------------------------------------------------
+            # Stage: Windows Unit Tests
+            #------------------------------------------------------------
+            - stage: WindowsUnitTests
+              dependsOn: []
+              jobs:
+                  - job: UnitTests
+                    pool:
+                        type: windows
+                    variables:
+                        # Required by OneBranch even for non-artifact jobs
+                        ob_outputDirectory: '$(Build.SourcesDirectory)/out'
+                    strategy:
+                        matrix:
+                            Node20:
+                                NODE_VERSION: '20.x'
+                            Node22:
+                                NODE_VERSION: '22.x'
+                    steps:
+                        - task: NodeTool@0
+                          inputs:
+                              versionSpec: $(NODE_VERSION)
+                          displayName: 'Install Node.js $(NODE_VERSION)'
+                        - script: npm ci
+                          displayName: 'npm ci'
+                        - script: npm run build
+                          displayName: 'npm run build'
+                        - script: npm run lint
+                          displayName: 'npm run lint'
+                        - script: npm run typecheck
+                          displayName: 'npm run typecheck'
+                        - script: npm test
+                          displayName: 'Run unit tests'
+                        - task: PublishTestResults@2
+                          displayName: 'Publish Unit Test Results'
+                          inputs:
+                              testResultsFiles: 'test-results/*.xml'
+                              testRunTitle: '$(Agent.JobName)'
+                          condition: succeededOrFailed()
 
-            - template: /azure-pipelines/templates/stages/test.yml@self
-              parameters:
-                  name: LinuxUnitTests
-                  poolType: linux
+            #------------------------------------------------------------
+            # Stage: Linux Unit Tests
+            #------------------------------------------------------------
+            - stage: LinuxUnitTests
+              dependsOn: []
+              jobs:
+                  - job: UnitTests
+                    pool:
+                        type: linux
+                    variables:
+                        ob_outputDirectory: '$(Build.SourcesDirectory)/out'
+                    strategy:
+                        matrix:
+                            Node20:
+                                NODE_VERSION: '20.x'
+                            Node22:
+                                NODE_VERSION: '22.x'
+                    steps:
+                        - task: NodeTool@0
+                          inputs:
+                              versionSpec: $(NODE_VERSION)
+                          displayName: 'Install Node.js $(NODE_VERSION)'
+                        - script: npm ci
+                          displayName: 'npm ci'
+                        - script: npm run build
+                          displayName: 'npm run build'
+                        - script: npm run lint
+                          displayName: 'npm run lint'
+                        - script: npm run typecheck
+                          displayName: 'npm run typecheck'
+                        - script: npm test
+                          displayName: 'Run unit tests'
+                        - task: PublishTestResults@2
+                          displayName: 'Publish Unit Test Results'
+                          inputs:
+                              testResultsFiles: 'test-results/*.xml'
+                              testRunTitle: '$(Agent.JobName)'
+                          condition: succeededOrFailed()
 
+            #------------------------------------------------------------
+            # Stage: Build & Package
+            # Produces .tgz artifact via ob_outputDirectory
+            #------------------------------------------------------------
             - stage: Build
               dependsOn: []
               jobs:
-                  - template: /azure-pipelines/templates/jobs/build.yml@self
+                  - job: Build
+                    pool:
+                        type: linux
+                    variables:
+                        ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/out'
+                        ob_git_checkout: true
+                    steps:
+                        - task: NodeTool@0
+                          inputs:
+                              versionSpec: '20.x'
+                          displayName: 'Install Node.js 20.x'
+                        - script: npm ci
+                          displayName: 'npm ci'
+                        - script: npm audit --production
+                          displayName: 'Run vulnerability scan'
+                        - script: npm run build
+                          displayName: 'npm run build'
+                        - task: CopyFiles@2
+                          displayName: 'Copy files to staging'
+                          inputs:
+                              sourceFolder: '$(Build.SourcesDirectory)'
+                              contents: |
+                                  dist/**
+                                  LICENSE
+                                  package.json
+                                  README.md
+                              targetFolder: '$(Build.ArtifactStagingDirectory)/dropInput'
+                              cleanTargetFolder: true
+                        - script: npm prune --production
+                          displayName: 'npm prune --production'
+                        - script: npm pack
+                          displayName: 'npm pack'
+                          workingDirectory: '$(Build.ArtifactStagingDirectory)/dropInput'
+                        # Move .tgz to ob_outputDirectory for automatic artifact publishing
+                        - script: mv $(Build.ArtifactStagingDirectory)/dropInput/*.tgz $(ob_outputDirectory)/
+                          displayName: 'Move package to output directory'
